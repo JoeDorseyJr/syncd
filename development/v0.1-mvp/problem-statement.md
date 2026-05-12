@@ -16,7 +16,7 @@ The current nix-darwin setup fails on every `brew bundle` and `brew cu` operatio
 ## Desired Behavior
 
 - A YAML config declares taps, brews, and casks
-- `syncd plan` shows what would be installed, removed, or upgraded
+- `syncd plan` shows what would be installed or removed
 - `syncd apply` reconciles the system to match the config
 - Packages not in the config are removed (cleanup)
 - Works directly with Homebrew — no Nix, no patches

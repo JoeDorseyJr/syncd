@@ -107,7 +107,7 @@ type State struct {
     Casks []string
 }
 
-func GetState() (*State, error)
+func GetState(runner CommandRunner) (*State, error)
 ```
 
 ```go
@@ -118,7 +118,7 @@ type Result struct {
     Err     error
 }
 
-func Execute(plan *plan.Plan, confirm bool) ([]Result, error)
+func Execute(runner CommandRunner, plan *plan.Plan) ([]Result, error)
 ```
 
 ### Command Flow
@@ -145,7 +145,7 @@ sequenceDiagram
     CLI->>Config: Load(path)
     CLI->>Brew: GetState()
     CLI->>Plan: Compute(config, state)
-    CLI->>Executor: Execute(plan, skipConfirm=true)
+    CLI->>Executor: Execute(runner, plan)
     Executor->>Brew: brew tap/install/uninstall...
     Executor-->>CLI: []Result
     CLI->>User: Print results, exit 0 or 1

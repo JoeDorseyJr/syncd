@@ -4,8 +4,8 @@
 
 - [ ] Go project scaffolding (go.mod, cmd/, internal/)
 - [ ] Config parser (YAML → struct)
-- [ ] `sysyncd plan` — diff desired vs installed
-- [ ] `sysyncd apply` — install taps, brews, casks
+- [ ] `syncd plan` — diff desired vs installed
+- [ ] `syncd apply` — install taps, brews, casks
 - [ ] Cleanup: remove unlisted packages, autoremove, clear cache
 - [ ] `--yes` flag to skip confirmation
 
@@ -23,7 +23,7 @@
 
 - [ ] macOS defaults (read current, write declared, restart affected apps)
 - [ ] Dotfile symlinks (backup existing, link from config dir)
-- [ ] `sysyncd init` — snapshot current system into config.yaml
+- [ ] `syncd init` — snapshot current system into config.yaml
 - [ ] Mac App Store apps (via mas)
 
 ## v0.3 — Shell & fonts
@@ -34,9 +34,9 @@
 
 ## v0.4 — Automation
 
-- [ ] `sysyncd schedule` — generate and load launchd plist
-- [ ] `sysyncd update` — upgrade all declared packages
-- [ ] `sysyncd status` — detect drift from declared state
+- [ ] `syncd schedule` — generate and load launchd plist
+- [ ] `syncd update` — upgrade all declared packages
+- [ ] `syncd status` — detect drift from declared state
 - [ ] Logging (write apply results to ~/.config/syncd/logs/)
 
 ## v0.5 — Distribution
@@ -52,4 +52,4 @@
 - [ ] Cross-platform interfaces defined (Linux backends stubbed)
 - [ ] Error recovery (rollback on failure)
 - [ ] Config validation with helpful error messages
-- [ ] `sysyncd doctor` — diagnose common issues
+- [ ] `syncd doctor` — diagnose common issues
