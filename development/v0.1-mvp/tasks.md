@@ -38,22 +38,22 @@
 ### 2.1 CommandRunner interface
 > REQ-027 | Design: Test Infrastructure, Homebrew Interaction
 
-- [ ] Create `internal/brew/runner.go` — `CommandRunner` interface
-- [ ] Implement `ExecRunner` (real `os/exec`) and `MockRunner` (for tests)
-- [ ] Verify: interface compiles, mock satisfies it
+- [x] Create `internal/brew/runner.go` — `CommandRunner` interface
+- [x] Implement `ExecRunner` (real `os/exec`) and `MockRunner` (for tests)
+- [x] Verify: interface compiles, mock satisfies it
 
 ### 2.2 Homebrew state query
 > REQ-027 | Design: Homebrew Interaction, Core Types
 
-- [ ] Create `internal/brew/state.go` — `State` struct + `GetState(runner) (*State, error)`
+- [x] Create `internal/brew/state.go` — `State` struct + `GetState(runner) (*State, error)`
   - Parse `brew tap` output → `State.Taps`
   - Parse `brew list --formula -1` output → `State.Brews`
   - Parse `brew list --cask -1` output → `State.Casks`
-- [ ] Create `internal/brew/brew_test.go`
+- [x] Create `internal/brew/brew_test.go`
   - Test: parse multi-line brew output into string slices
   - Test: handle empty output (nothing installed)
   - Test: handle command failure gracefully
-- [ ] Verify: `go test ./internal/brew/...` passes
+- [x] Verify: `go test ./internal/brew/...` passes
 
 **Estimate:** ~1 hour
 
