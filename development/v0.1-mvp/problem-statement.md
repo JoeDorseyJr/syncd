@@ -18,7 +18,7 @@ The current nix-darwin setup fails on every `brew bundle` and `brew cu` operatio
 - A YAML config declares taps, brews, and casks
 - `syncd plan` shows what would be installed or removed
 - `syncd apply` reconciles the system to match the config
-- Packages not in the config are removed (cleanup)
+- Formulae and casks not in the config are removed (cleanup)
 - Works directly with Homebrew — no Nix, no patches
 
 ## Success Outcomes
@@ -57,4 +57,4 @@ The current nix-darwin setup fails on every `brew bundle` and `brew cu` operatio
 ## Open Questions
 
 1. Should `syncd apply` install Homebrew if it's missing?
-2. On cleanup, should it prompt per-package or batch confirm?
+2. ~~On cleanup, should it prompt per-package or batch confirm?~~ **Resolved:** One batch confirmation before apply; skipped by `--yes`.

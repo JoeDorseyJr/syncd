@@ -4,9 +4,13 @@ Keep your system synced. Declarative state management for macOS.
 
 ## Install
 
+syncd is not yet distributed via Homebrew (planned for v0.5). For now, build from source:
+
 ```bash
-brew tap joedorseyjr/syncd
-brew install syncd
+git clone https://github.com/joedorseyjr/syncd.git
+cd syncd
+make build
+# binary at ./bin/syncd
 ```
 
 ## Usage (v0.1)
@@ -19,7 +23,7 @@ syncd apply     # Apply desired state
 ## What It Manages (v0.1)
 
 - **Homebrew taps, formulae, and casks**
-- **System cleanup** (remove undeclared packages, prune deps, clear caches)
+- **System cleanup** (remove undeclared formulae/casks, prune deps, clear caches)
 
 ## Config
 
@@ -51,11 +55,11 @@ cleanup:
 3. Computes a diff
 4. Applies changes (with confirmation unless `--yes`)
 
-Cleanup mode removes anything installed that isn't declared in the config — keeping your system exactly as specified.
+Cleanup mode removes undeclared formulae and casks (when `cleanup.remove_unlisted` is true), prunes unused dependencies, and clears the Homebrew cache.
 
 ## Built With
 
-- Go (single binary, no runtime dependencies)
+- Go (single binary; no runtime dependencies beyond Homebrew CLI)
 - Homebrew (package management backend)
 
 ## Project Structure
