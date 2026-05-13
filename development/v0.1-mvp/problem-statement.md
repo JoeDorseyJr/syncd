@@ -56,5 +56,5 @@ The current nix-darwin setup fails on every `brew bundle` and `brew cu` operatio
 
 ## Open Questions
 
-1. Should `syncd apply` install Homebrew if it's missing?
+1. ~~Should `syncd apply` install Homebrew if it's missing?~~ **Resolved:** No. Exit with a clear error message and print the official install URL (`https://brew.sh`).
 2. ~~On cleanup, should it prompt per-package or batch confirm?~~ **Resolved:** One batch confirmation before apply; skipped by `--yes`.

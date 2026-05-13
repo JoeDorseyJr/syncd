@@ -3,12 +3,14 @@
 ## Phase 1: Scaffolding & Config (~2 hours)
 
 ### 1.1 Project initialization
-> REQ-025, REQ-028, REQ-029 | Design: Project Layout
+> REQ-025, REQ-028, REQ-029, REQ-032 | Design: Project Layout, Config Resolution
 
 - [ ] Initialize Go module (`go mod init github.com/joedorseyjr/syncd`)
 - [ ] Add dependencies: `cobra`, `gopkg.in/yaml.v3`
 - [ ] Create `cmd/syncd/main.go` with cobra root command
-- [ ] Create `Makefile` with `build`, `test`, `lint` targets
+- [ ] Add `--config <path>` persistent flag on root command (REQ-032)
+- [ ] Set cobra `Version` field for `--version` output
+- [ ] Create `Makefile` with `build`, `test`, `lint` targets (`CGO_ENABLED=0` in build target)
 - [ ] Verify: `go build ./cmd/syncd` produces single binary
 
 ### 1.2 Config parser
@@ -60,10 +62,11 @@
 ## Phase 3: Plan Command (~2 hours)
 
 ### 3.1 Diff calculator
-> REQ-005, REQ-006, REQ-007, REQ-008, REQ-009, REQ-019 | Design: Diff Calculator
+> REQ-005, REQ-006, REQ-007, REQ-008, REQ-009, REQ-019, REQ-030 | Design: Diff Calculator
 
 - [ ] Create `internal/plan/plan.go` — `Plan` struct + `Compute(config, state) *Plan`
   - Taps in config but not in state → `TapsToAdd`
+  - Taps in state but not in config → `TapsToRemove` (only if `remove_unlisted`)
   - Brews in config but not in state → `BrewsToInstall`
   - Casks in config but not in state → `CasksToInstall`
   - Brews in state but not in config → `BrewsToRemove` (only if `remove_unlisted`)
@@ -72,6 +75,7 @@
 - [ ] Implement `Plan.IsEmpty() bool`
 - [ ] Create `internal/plan/plan_test.go`
   - Test: packages to add (tap, brew, cask)
+  - Test: taps to remove when `remove_unlisted: true`
   - Test: packages to remove when `remove_unlisted: true`
   - Test: no removals when `remove_unlisted: false`
   - Test: empty plan when system matches config
@@ -95,21 +99,24 @@
 ## Phase 4: Apply Command (~3 hours)
 
 ### 4.1 Executor
-> REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, REQ-020, REQ-021, REQ-023, REQ-024 | Design: Homebrew Interaction, Executor
+> REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, REQ-020, REQ-021, REQ-023, REQ-024, REQ-031 | Design: Homebrew Interaction, Executor
 
 - [ ] Create `internal/brew/executor.go` — `Execute(runner, plan) []Result`
   - Run `brew tap` for each tap to add
   - Run `brew install` for each brew to install
   - Run `brew install --cask` for each cask to install
+  - Run `brew untap` for each tap to remove (REQ-031)
   - Run `brew uninstall` for each brew to remove
   - Run `brew uninstall --cask` for each cask to remove
   - Run `brew autoremove` if flagged
   - Run `brew cleanup` if flagged
+  - Execution order: taps → brew installs → cask installs → tap removals → brew removals → cask removals → autoremove → cleanup
   - Capture errors per operation, continue on failure (REQ-023)
   - Return all results including failures
 - [ ] Create `internal/brew/executor_test.go`
   - Test: successful install sequence
   - Test: one failure doesn't stop others
+  - Test: tap removal executes `brew untap`
   - Test: autoremove/cleanup only run when flagged
 - [ ] Verify: `go test ./internal/brew/...` passes
 
@@ -195,7 +202,7 @@
 
 ### Requirements Covered
 
-All 29 requirements (REQ-001 through REQ-029) are covered by tasks above.
+All 32 requirements (REQ-001 through REQ-032) are covered by tasks above.
 
 | Requirement Range | Phase | Tasks |
 |-------------------|-------|-------|
@@ -204,7 +211,10 @@ All 29 requirements (REQ-001 through REQ-029) are covered by tasks above.
 | REQ-012–022 | Phase 4 | 4.1, 4.2, 4.3, 4.4 |
 | REQ-023–024 | Phase 4 | 4.1 |
 | REQ-025–029 | Phase 1, 2, 5 | 1.1, 2.1, 5.2 |
+| REQ-030 | Phase 3 | 3.1 |
+| REQ-031 | Phase 4 | 4.1 |
+| REQ-032 | Phase 1 | 1.1 |
 
 ### Uncovered Requirements
 
-None — all 29 requirements have at least one task with a concrete verification method.
+None — all 32 requirements have at least one task with a concrete verification method.

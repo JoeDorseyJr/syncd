@@ -33,20 +33,23 @@
 | REQ-027 | Shell out to Homebrew CLI | Design Decisions — shell-out | 2.1, 2.2 | Code review — no Ruby API, only CLI |
 | REQ-028 | Use cobra for CLI | Project Layout — cobra in cmd/ | 1.1 | Code review — cobra in cmd/ |
 | REQ-029 | Use `gopkg.in/yaml.v3` | Core Types — yaml.v3 tags | 1.1, 1.2 | Code review — yaml.v3 in go.mod |
+| REQ-030 | Plan: list taps to remove (cleanup enabled) | Diff Calculator (cleanup flag) — TapsToRemove | 3.1 | Have undeclared tap installed, run plan, confirm output |
+| REQ-031 | Apply: remove undeclared taps (cleanup enabled) | Homebrew Interaction — `brew untap` | 4.1, 4.3 | Tap a repo not in config, apply, verify `brew tap` no longer shows it |
+| REQ-032 | `--config <path>` overrides default config path | Config Resolution — `--config` flag | 1.1 | Run `syncd plan --config /tmp/test.yaml`, confirm reads from specified path |
 
 ## Reverse Trace: Task → Requirements
 
 | Task ID | Task Name | Requirements Covered |
 |---------|-----------|---------------------|
-| 1.1 | Project initialization | REQ-025, REQ-028, REQ-029 |
+| 1.1 | Project initialization | REQ-025, REQ-028, REQ-029, REQ-032 |
 | 1.2 | Config parser | REQ-001, REQ-002, REQ-003, REQ-004 |
 | 2.1 | CommandRunner interface | REQ-027 |
 | 2.2 | Homebrew state query | REQ-027 |
-| 3.1 | Diff calculator | REQ-005, REQ-006, REQ-007, REQ-008, REQ-009, REQ-019 |
+| 3.1 | Diff calculator | REQ-005, REQ-006, REQ-007, REQ-008, REQ-009, REQ-019, REQ-030 |
 | 3.2 | Plan CLI command | REQ-010, REQ-011 |
-| 4.1 | Executor | REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, REQ-020, REQ-021, REQ-023, REQ-024 |
+| 4.1 | Executor | REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, REQ-020, REQ-021, REQ-023, REQ-024, REQ-031 |
 | 4.2 | Confirmation prompt | REQ-012, REQ-013 |
-| 4.3 | Apply CLI command | REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, REQ-019, REQ-022, REQ-024 |
+| 4.3 | Apply CLI command | REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, REQ-019, REQ-022, REQ-024, REQ-031 |
 | 4.4 | Idempotency validation | REQ-022 |
 | 5.1 | Integration test suite | REQ-010, REQ-022, REQ-023 |
 | 5.2 | Build & release prep | REQ-025, REQ-026 |
@@ -54,8 +57,8 @@
 
 ## Coverage Summary
 
-- **Requirements with tasks:** 29/29 (100%)
-- **Requirements with design mapping:** 29/29 (100%)
-- **Requirements with verification method:** 29/29 (100%)
+- **Requirements with tasks:** 32/32 (100%)
+- **Requirements with design mapping:** 32/32 (100%)
+- **Requirements with verification method:** 32/32 (100%)
 - **Orphan tasks (no requirement):** None
 - **Orphan requirements (no task):** None

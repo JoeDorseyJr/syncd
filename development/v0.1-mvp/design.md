@@ -88,6 +88,7 @@ type Cleanup struct {
 // internal/plan/plan.go
 type Plan struct {
     TapsToAdd      []string
+    TapsToRemove   []string
     BrewsToInstall []string
     BrewsToRemove  []string
     CasksToInstall []string
@@ -165,10 +166,11 @@ All Homebrew interaction goes through `internal/brew/` using `os/exec`:
 | Install cask | `brew install --cask <name>` |
 | Remove brew | `brew uninstall <name>` |
 | Remove cask | `brew uninstall --cask <name>` |
+| Remove tap | `brew untap <name>` |
 | Autoremove | `brew autoremove` |
 | Clear cache | `brew cleanup` |
 
-Commands are executed sequentially. Each failure is captured in a `Result` and execution continues (REQ-023).
+Commands are executed in this order: tap adds → brew installs → cask installs → tap removals → brew removals → cask removals → autoremove → cleanup cache. Each failure is captured in a `Result` and execution continues (REQ-023).
 
 ### Exit Codes
 
@@ -182,7 +184,10 @@ Commands are executed sequentially. Each failure is captured in a `Result` and e
 
 Default path: `~/.config/syncd/config.yaml`
 
+Override: `--config <path>` persistent flag on root command (REQ-032).
+
 Validation on load:
+- Homebrew must be installed — check `brew --version`; if missing, exit 1 with error message and install URL (`https://brew.sh`)
 - File must exist (REQ-002 → exit 1 with message)
 - File must be valid YAML (REQ-003 → exit 1 with parse error)
 - Missing sections treated as empty slices (not an error)
@@ -310,3 +315,6 @@ Each REQ has a defined verification method in requirements.md. The test suite ma
 | REQ-027 | Design Decisions — shell-out to Homebrew |
 | REQ-028 | Project Layout — cobra in cmd/ |
 | REQ-029 | Core Types — yaml.v3 tags |
+| REQ-030 | Diff Calculator (cleanup flag) — TapsToRemove |
+| REQ-031 | Homebrew Interaction — `brew untap` |
+| REQ-032 | Config Resolution — `--config` flag |

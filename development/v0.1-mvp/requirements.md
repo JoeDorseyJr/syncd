@@ -98,8 +98,8 @@
 
 ## Technical Requirements
 
-**REQ-025:** syncd shall be written in Go and compile to a single static binary.
-- Verification: Run `go build`, confirm single binary output with no runtime dependencies.
+**REQ-025:** syncd shall be written in Go and compile to a single binary.
+- Verification: Run `go build`, confirm single binary output.
 
 **REQ-026:** syncd shall have no runtime dependencies beyond Homebrew being installed.
 - Verification: Run on a clean Mac with only Homebrew, confirm it works.
@@ -115,6 +115,23 @@
 
 ---
 
+## Additional Requirements
+
+### Tap Cleanup
+
+**REQ-030:** `syncd plan` shall list installed taps not in the config as "to remove" (when `cleanup.remove_unlisted` is true).
+- Verification: Have a tap installed that's not in config, run `syncd plan`, confirm it appears as "to remove".
+
+**REQ-031:** `syncd apply` shall remove installed taps not in the config (when `cleanup.remove_unlisted` is true).
+- Verification: Tap a repo not in config, run `syncd apply --yes`, confirm `brew tap` no longer shows it.
+
+### CLI Flags
+
+**REQ-032:** syncd shall accept a `--config <path>` flag that overrides the default config file path.
+- Verification: Create a config at a non-default path, run `syncd plan --config /tmp/test.yaml`, confirm it reads from the specified path.
+
+---
+
 ## Traceability Matrix
 
 | Requirement | User Story | Command |
@@ -124,3 +141,6 @@
 | REQ-012–022 | US-001, US-003, US-004 | apply |
 | REQ-023–024 | US-002 | apply (errors) |
 | REQ-025–029 | — | technical |
+| REQ-030 | US-003 | plan (tap cleanup) |
+| REQ-031 | US-003 | apply (tap cleanup) |
+| REQ-032 | — | CLI flag |
