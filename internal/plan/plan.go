@@ -14,16 +14,21 @@ type Plan struct {
 	ClearCache     bool
 }
 
-// IsEmpty returns true if no changes are needed.
+// HasChanges returns true if there are package install/remove operations.
+// Cleanup-only actions (autoremove, clear_cache) are recurring maintenance
+// and do not count as pending drift for exit-code purposes.
+func (p *Plan) HasChanges() bool {
+	return len(p.TapsToAdd) > 0 ||
+		len(p.TapsToRemove) > 0 ||
+		len(p.BrewsToInstall) > 0 ||
+		len(p.BrewsToRemove) > 0 ||
+		len(p.CasksToInstall) > 0 ||
+		len(p.CasksToRemove) > 0
+}
+
+// IsEmpty returns true if there is nothing to do at all (no changes, no cleanup).
 func (p *Plan) IsEmpty() bool {
-	return len(p.TapsToAdd) == 0 &&
-		len(p.TapsToRemove) == 0 &&
-		len(p.BrewsToInstall) == 0 &&
-		len(p.BrewsToRemove) == 0 &&
-		len(p.CasksToInstall) == 0 &&
-		len(p.CasksToRemove) == 0 &&
-		!p.Autoremove &&
-		!p.ClearCache
+	return !p.HasChanges() && !p.Autoremove && !p.ClearCache
 }
 
 // State represents installed packages (mirrors brew.State to avoid import cycle).

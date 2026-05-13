@@ -90,7 +90,33 @@ func TestCompute_EmptyPlan(t *testing.T) {
 	p := Compute(cfg, state)
 
 	if !p.IsEmpty() {
-		t.Error("expected empty plan")
+		t.Error("expected IsEmpty() true")
+	}
+	if p.HasChanges() {
+		t.Error("expected HasChanges() false")
+	}
+}
+
+func TestCompute_CleanupOnlyIsNotDrift(t *testing.T) {
+	cfg := &config.Config{
+		Taps:    []string{"homebrew/cask"},
+		Brews:   []string{"git"},
+		Cleanup: config.Cleanup{Autoremove: true, ClearCache: true},
+	}
+	state := &State{
+		Taps:  []string{"homebrew/cask"},
+		Brews: []string{"git"},
+	}
+
+	p := Compute(cfg, state)
+
+	// Cleanup flags are set but there are no package changes
+	if p.HasChanges() {
+		t.Error("expected HasChanges() false for cleanup-only plan")
+	}
+	// IsEmpty is false because there IS work to do (cleanup)
+	if p.IsEmpty() {
+		t.Error("expected IsEmpty() false when cleanup flags are set")
 	}
 }
 
@@ -104,7 +130,6 @@ func TestCompute_CaseSensitivity(t *testing.T) {
 
 	p := Compute(cfg, state)
 
-	// "Git" != "git" — case-sensitive comparison
 	assertSlice(t, "BrewsToInstall", p.BrewsToInstall, []string{"Git"})
 }
 

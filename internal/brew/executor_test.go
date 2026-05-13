@@ -2,6 +2,7 @@ package brew
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/joedorseyjr/syncd/internal/plan"
@@ -9,6 +10,7 @@ import (
 
 func TestExecute_SuccessfulSequence(t *testing.T) {
 	mock := &MockRunner{
+		FailOnExtras: true,
 		Outputs: []MockOutput{
 			{Out: []byte("")}, // tap
 			{Out: []byte("")}, // install
@@ -33,23 +35,65 @@ func TestExecute_SuccessfulSequence(t *testing.T) {
 		}
 	}
 
-	// Verify execution order
-	if mock.Calls[0].Args[0] != "tap" {
-		t.Errorf("expected first call to be tap, got %v", mock.Calls[0].Args)
+	// Verify exact command calls
+	wantCalls := []MockCall{
+		{Name: "brew", Args: []string{"tap", "hashicorp/tap"}},
+		{Name: "brew", Args: []string{"install", "go"}},
+		{Name: "brew", Args: []string{"install", "--cask", "firefox"}},
 	}
-	if mock.Calls[1].Args[0] != "install" {
-		t.Errorf("expected second call to be install, got %v", mock.Calls[1].Args)
+	assertCalls(t, mock.Calls, wantCalls)
+}
+
+func TestExecute_FullOrderWithRemovals(t *testing.T) {
+	mock := &MockRunner{
+		FailOnExtras: true,
+		Outputs: []MockOutput{
+			{Out: []byte("")}, // tap add
+			{Out: []byte("")}, // brew install
+			{Out: []byte("")}, // cask install
+			{Out: []byte("")}, // brew uninstall
+			{Out: []byte("")}, // cask uninstall
+			{Out: []byte("")}, // untap (after package removals)
+			{Out: []byte("")}, // autoremove
+			{Out: []byte("")}, // cleanup
+		},
 	}
-	if mock.Calls[2].Args[0] != "install" && mock.Calls[2].Args[1] != "--cask" {
-		t.Errorf("expected third call to be install --cask, got %v", mock.Calls[2].Args)
+
+	p := &plan.Plan{
+		TapsToAdd:      []string{"new/tap"},
+		BrewsToInstall: []string{"git"},
+		CasksToInstall: []string{"firefox"},
+		BrewsToRemove:  []string{"wget"},
+		CasksToRemove:  []string{"slack"},
+		TapsToRemove:   []string{"old/tap"},
+		Autoremove:     true,
+		ClearCache:     true,
 	}
+
+	results := Execute(mock, p)
+	if len(results) != 8 {
+		t.Fatalf("expected 8 results, got %d", len(results))
+	}
+
+	// Verify order: taps → installs → cask installs → brew removals → cask removals → tap removals → autoremove → cleanup
+	wantCalls := []MockCall{
+		{Name: "brew", Args: []string{"tap", "new/tap"}},
+		{Name: "brew", Args: []string{"install", "git"}},
+		{Name: "brew", Args: []string{"install", "--cask", "firefox"}},
+		{Name: "brew", Args: []string{"uninstall", "wget"}},
+		{Name: "brew", Args: []string{"uninstall", "--cask", "slack"}},
+		{Name: "brew", Args: []string{"untap", "old/tap"}},
+		{Name: "brew", Args: []string{"autoremove"}},
+		{Name: "brew", Args: []string{"cleanup"}},
+	}
+	assertCalls(t, mock.Calls, wantCalls)
 }
 
 func TestExecute_OneFailureDoesNotStopOthers(t *testing.T) {
 	mock := &MockRunner{
 		Outputs: []MockOutput{
-			{Err: errors.New("tap failed")}, // tap fails
-			{Out: []byte("")},               // install succeeds
+			{Err: errors.New("tap failed")},
+			{Out: []byte("")},
 		},
 	}
 
@@ -71,34 +115,36 @@ func TestExecute_OneFailureDoesNotStopOthers(t *testing.T) {
 	}
 }
 
-func TestExecute_TapRemoval(t *testing.T) {
+func TestExecute_TapRemovalAfterPackageRemovals(t *testing.T) {
 	mock := &MockRunner{
+		FailOnExtras: true,
 		Outputs: []MockOutput{
+			{Out: []byte("")}, // uninstall brew
 			{Out: []byte("")}, // untap
 		},
 	}
 
 	p := &plan.Plan{
-		TapsToRemove: []string{"old/tap"},
+		BrewsToRemove: []string{"pkg-from-tap"},
+		TapsToRemove:  []string{"old/tap"},
 	}
 
 	results := Execute(mock, p)
 
-	if len(results) != 1 {
-		t.Fatalf("expected 1 result, got %d", len(results))
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
 	}
-	if results[0].Action != "untap" {
-		t.Errorf("expected action 'untap', got %q", results[0].Action)
+
+	// Verify untap comes after uninstall
+	wantCalls := []MockCall{
+		{Name: "brew", Args: []string{"uninstall", "pkg-from-tap"}},
+		{Name: "brew", Args: []string{"untap", "old/tap"}},
 	}
-	if mock.Calls[0].Args[0] != "untap" {
-		t.Errorf("expected brew untap call, got %v", mock.Calls[0].Args)
-	}
+	assertCalls(t, mock.Calls, wantCalls)
 }
 
 func TestExecute_AutoremoveCleanupOnlyWhenFlagged(t *testing.T) {
-	mock := &MockRunner{
-		Outputs: []MockOutput{},
-	}
+	mock := &MockRunner{FailOnExtras: true}
 
 	p := &plan.Plan{
 		Autoremove: false,
@@ -110,11 +156,11 @@ func TestExecute_AutoremoveCleanupOnlyWhenFlagged(t *testing.T) {
 		t.Errorf("expected 0 results, got %d", len(results))
 	}
 
-	// Now with flags enabled
 	mock2 := &MockRunner{
+		FailOnExtras: true,
 		Outputs: []MockOutput{
-			{Out: []byte("")}, // autoremove
-			{Out: []byte("")}, // cleanup
+			{Out: []byte("")},
+			{Out: []byte("")},
 		},
 	}
 
@@ -127,10 +173,31 @@ func TestExecute_AutoremoveCleanupOnlyWhenFlagged(t *testing.T) {
 	if len(results2) != 2 {
 		t.Fatalf("expected 2 results, got %d", len(results2))
 	}
-	if results2[0].Action != "autoremove" {
-		t.Errorf("expected 'autoremove', got %q", results2[0].Action)
+
+	wantCalls := []MockCall{
+		{Name: "brew", Args: []string{"autoremove"}},
+		{Name: "brew", Args: []string{"cleanup"}},
 	}
-	if results2[1].Action != "cleanup" {
-		t.Errorf("expected 'cleanup', got %q", results2[1].Action)
+	assertCalls(t, mock2.Calls, wantCalls)
+}
+
+func TestMockRunner_FailOnExtras(t *testing.T) {
+	mock := &MockRunner{FailOnExtras: true}
+	_, err := mock.Run("brew", "unexpected")
+	if err == nil {
+		t.Error("expected error for unexpected call with FailOnExtras")
+	}
+}
+
+func assertCalls(t *testing.T, got, want []MockCall) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Errorf("call count: expected %d, got %d\ngot:  %v\nwant: %v", len(want), len(got), got, want)
+		return
+	}
+	for i := range got {
+		if got[i].Name != want[i].Name || !reflect.DeepEqual(got[i].Args, want[i].Args) {
+			t.Errorf("call[%d]: expected %v %v, got %v %v", i, want[i].Name, want[i].Args, got[i].Name, got[i].Args)
+		}
 	}
 }

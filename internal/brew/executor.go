@@ -14,8 +14,9 @@ type Result struct {
 }
 
 // Execute runs brew commands to reconcile state per the plan.
-// Execution order: taps → brew installs → cask installs → tap removals →
-// brew removals → cask removals → autoremove → cleanup.
+// Execution order: tap adds → brew installs → cask installs →
+// brew removals → cask removals → tap removals → autoremove → cleanup.
+// Tap removals run last among removals so dependent packages are gone first.
 // Continues on failure, collecting all results.
 func Execute(runner CommandRunner, p *plan.Plan) []Result {
 	var results []Result
@@ -32,10 +33,6 @@ func Execute(runner CommandRunner, p *plan.Plan) []Result {
 		_, err := runner.Run("brew", "install", "--cask", name)
 		results = append(results, Result{Action: "install-cask", Package: name, Err: err})
 	}
-	for _, name := range p.TapsToRemove {
-		_, err := runner.Run("brew", "untap", name)
-		results = append(results, Result{Action: "untap", Package: name, Err: err})
-	}
 	for _, name := range p.BrewsToRemove {
 		_, err := runner.Run("brew", "uninstall", name)
 		results = append(results, Result{Action: "uninstall", Package: name, Err: err})
@@ -43,6 +40,10 @@ func Execute(runner CommandRunner, p *plan.Plan) []Result {
 	for _, name := range p.CasksToRemove {
 		_, err := runner.Run("brew", "uninstall", "--cask", name)
 		results = append(results, Result{Action: "uninstall-cask", Package: name, Err: err})
+	}
+	for _, name := range p.TapsToRemove {
+		_, err := runner.Run("brew", "untap", name)
+		results = append(results, Result{Action: "untap", Package: name, Err: err})
 	}
 	if p.Autoremove {
 		_, err := runner.Run("brew", "autoremove")

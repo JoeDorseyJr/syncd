@@ -110,7 +110,7 @@
   - Run `brew uninstall --cask` for each cask to remove
   - Run `brew autoremove` if flagged
   - Run `brew cleanup` if flagged
-  - Execution order: taps → brew installs → cask installs → tap removals → brew removals → cask removals → autoremove → cleanup
+  - Execution order: taps → brew installs → cask installs → brew removals → cask removals → tap removals → autoremove → cleanup
   - Capture errors per operation, continue on failure (REQ-023)
   - Return all results including failures
 - [x] Create `internal/brew/executor_test.go`
@@ -125,8 +125,8 @@
 
 - [x] Implement confirmation prompt in apply flow (print plan, ask y/n)
 - [x] Implement `--yes` flag to skip prompt
-- [x] Test: prompt blocks execution until confirmed
-- [x] Test: `--yes` bypasses prompt
+- [x] Test: prompt blocks execution until confirmed (internal/cli/cli_test.go)
+- [x] Test: `--yes` bypasses prompt (internal/cli/cli_test.go)
 
 ### 4.3 Apply CLI command
 > REQ-012–022 | Design: Command Flow
@@ -155,31 +155,31 @@
 ### 5.1 Integration test suite
 > REQ-010, REQ-022, REQ-023 | Design: Integration Tests
 
-- [ ] Create `test/integration_test.go` with `//go:build integration` tag
+- [x] Create `test/integration_test.go` with `//go:build integration` tag
   - Test: `plan` doesn't modify system (compare `brew list` before/after)
   - Test: `apply` installs a declared package
   - Test: `apply` removes an undeclared package (with `cleanup.remove_unlisted: true`)
   - Test: `apply` does NOT remove an undeclared package (with `cleanup.remove_unlisted: false`)
   - Test: idempotency (apply twice, second plan is empty)
   - Test: nonexistent package reports error, others still succeed
-- [ ] Verify: `go test -tags integration ./test/...` passes
+- [x] Verify: `go test -tags integration ./test/...` passes
 
 ### 5.2 Build & release prep
 > REQ-025, REQ-026 | Design: Single binary
 
-- [ ] Makefile targets: `build`, `test`, `integration-test`, `lint`, `clean`
-- [ ] Verify: `make build` produces static binary
-- [ ] Verify: binary runs on clean system with only Homebrew installed
-- [ ] Update `.gitignore` for build artifacts
+- [x] Makefile targets: `build`, `test`, `integration-test`, `lint`, `clean`
+- [x] Verify: `make build` produces static binary
+- [x] Verify: binary runs on clean system with only Homebrew installed
+- [x] Update `.gitignore` for build artifacts
 
 ### 5.3 End-to-end validation
 > All REQs | Full user workflow
 
-- [ ] Workflow: fresh config → `syncd plan` → shows adds → `syncd apply --yes` → packages installed
-- [ ] Workflow: with `cleanup.remove_unlisted: true`, add package not in config → `syncd plan` → shows removal → `syncd apply --yes` → removed
-- [ ] Workflow: with `cleanup.remove_unlisted: false`, add package not in config → `syncd plan` → no removal shown
-- [ ] Workflow: `syncd plan` on synced system → exit 0, no output
-- [ ] Workflow: invalid config → clear error message, non-zero exit
+- [x] Workflow: fresh config → `syncd plan` → shows adds → `syncd apply --yes` → packages installed
+- [x] Workflow: with `cleanup.remove_unlisted: true`, add package not in config → `syncd plan` → shows removal → `syncd apply --yes` → removed
+- [x] Workflow: with `cleanup.remove_unlisted: false`, add package not in config → `syncd plan` → no removal shown
+- [x] Workflow: `syncd plan` on synced system → exit 0, no output
+- [x] Workflow: invalid config → clear error message, non-zero exit
 
 **Estimate:** ~1.5 hours
 

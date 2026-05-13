@@ -59,10 +59,8 @@ func TestLoad_MissingFile(t *testing.T) {
 
 func TestLoad_EmptyPathUsesDefault(t *testing.T) {
 	_, err := Load("")
-	// We can't control ~/.config/syncd/config.yaml in tests, but we can
-	// verify it attempts the correct default path rather than erroring on "".
 	if err == nil {
-		return // default config happens to exist — that's fine
+		return // default config happens to exist
 	}
 	home, _ := os.UserHomeDir()
 	expected := home + "/.config/syncd/config.yaml"
@@ -77,8 +75,40 @@ func TestLoad_InvalidYAML(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid YAML")
 	}
-	if !strings.Contains(err.Error(), "invalid YAML") {
-		t.Errorf("expected 'invalid YAML' in error, got: %v", err)
+	if !strings.Contains(err.Error(), "invalid config") {
+		t.Errorf("expected 'invalid config' in error, got: %v", err)
+	}
+}
+
+func TestLoad_UnknownTopLevelKey(t *testing.T) {
+	content := `
+brew:
+  - git
+`
+	path := writeTemp(t, content)
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("expected error for unknown key 'brew' (should be 'brews')")
+	}
+	if !strings.Contains(err.Error(), "brew") {
+		t.Errorf("expected error to mention 'brew', got: %v", err)
+	}
+}
+
+func TestLoad_UnknownCleanupKey(t *testing.T) {
+	content := `
+brews:
+  - git
+cleanup:
+  remove_unlistd: true
+`
+	path := writeTemp(t, content)
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("expected error for misspelled cleanup key 'remove_unlistd'")
+	}
+	if !strings.Contains(err.Error(), "remove_unlistd") {
+		t.Errorf("expected error to mention 'remove_unlistd', got: %v", err)
 	}
 }
 

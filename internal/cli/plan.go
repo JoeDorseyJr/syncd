@@ -37,7 +37,12 @@ func NewPlanCmd(cfgFile *string) *cobra.Command {
 			}
 
 			printPlan(p)
-			os.Exit(2)
+
+			// Exit 2 only when there are package changes (drift).
+			// Cleanup-only plans (autoremove/clear_cache) are maintenance, not drift.
+			if p.HasChanges() {
+				os.Exit(2)
+			}
 			return nil
 		},
 	}

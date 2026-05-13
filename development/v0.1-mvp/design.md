@@ -170,7 +170,7 @@ All Homebrew interaction goes through `internal/brew/` using `os/exec`:
 | Autoremove | `brew autoremove` |
 | Clear cache | `brew cleanup` |
 
-Commands are executed in this order: tap adds → brew installs → cask installs → tap removals → brew removals → cask removals → autoremove → cleanup cache. Each failure is captured in a `Result` and execution continues (REQ-023).
+Commands are executed in this order: tap adds → brew installs → cask installs → brew removals → cask removals → tap removals → autoremove → cleanup cache. Each failure is captured in a `Result` and execution continues (REQ-023).
 
 ### Exit Codes
 
