@@ -5,29 +5,29 @@
 ### 1.1 Project initialization
 > REQ-025, REQ-028, REQ-029, REQ-032 | Design: Project Layout, Config Resolution
 
-- [ ] Initialize Go module (`go mod init github.com/joedorseyjr/syncd`)
-- [ ] Add dependencies: `cobra`, `gopkg.in/yaml.v3`
-- [ ] Create `cmd/syncd/main.go` with cobra root command
-- [ ] Add `--config <path>` persistent flag on root command (REQ-032)
-- [ ] Set cobra `Version` field for `--version` output
-- [ ] Create `Makefile` with `build`, `test`, `lint` targets (`CGO_ENABLED=0` in build target)
-- [ ] Verify: `go build ./cmd/syncd` produces single binary
+- [x] Initialize Go module (`go mod init github.com/joedorseyjr/syncd`)
+- [x] Add dependencies: `cobra`, `gopkg.in/yaml.v3`
+- [x] Create `cmd/syncd/main.go` with cobra root command
+- [x] Add `--config <path>` persistent flag on root command (REQ-032)
+- [x] Set cobra `Version` field for `--version` output
+- [x] Create `Makefile` with `build`, `test`, `lint` targets (`CGO_ENABLED=0` in build target)
+- [x] Verify: `go build ./cmd/syncd` produces single binary
 
 ### 1.2 Config parser
 > REQ-001, REQ-002, REQ-003, REQ-004 | Design: Config Resolution, Core Types
 
-- [ ] Create `internal/config/config.go` — `Config` and `Cleanup` structs
-- [ ] Implement `Load(path string) (*Config, error)`
+- [x] Create `internal/config/config.go` — `Config` and `Cleanup` structs
+- [x] Implement `Load(path string) (*Config, error)`
   - Read from `~/.config/syncd/config.yaml`
   - Return clear error if file missing (REQ-002)
   - Return clear error if YAML invalid (REQ-003)
   - Treat missing sections as empty slices
-- [ ] Create `internal/config/config_test.go`
+- [x] Create `internal/config/config_test.go`
   - Test: valid config parses all sections correctly
   - Test: missing file returns descriptive error
   - Test: malformed YAML returns descriptive error
   - Test: config with only some sections still parses
-- [ ] Verify: `go test ./internal/config/...` passes
+- [x] Verify: `go test ./internal/config/...` passes
 
 **Estimate:** ~1.5 hours
 
