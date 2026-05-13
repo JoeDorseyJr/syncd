@@ -1,9 +1,6 @@
 package plan
 
-import (
-	"github.com/joedorseyjr/syncd/internal/brew"
-	"github.com/joedorseyjr/syncd/internal/config"
-)
+import "github.com/joedorseyjr/syncd/internal/config"
 
 // Plan represents the set of changes needed to reconcile state with config.
 type Plan struct {
@@ -29,8 +26,15 @@ func (p *Plan) IsEmpty() bool {
 		!p.ClearCache
 }
 
+// State represents installed packages (mirrors brew.State to avoid import cycle).
+type State struct {
+	Taps  []string
+	Brews []string
+	Casks []string
+}
+
 // Compute calculates the diff between desired config and actual state.
-func Compute(cfg *config.Config, state *brew.State) *Plan {
+func Compute(cfg *config.Config, state *State) *Plan {
 	p := &Plan{
 		TapsToAdd:      diff(cfg.Taps, state.Taps),
 		BrewsToInstall: diff(cfg.Brews, state.Brews),

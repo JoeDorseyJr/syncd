@@ -101,7 +101,7 @@
 ### 4.1 Executor
 > REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, REQ-020, REQ-021, REQ-023, REQ-024, REQ-031 | Design: Homebrew Interaction, Executor
 
-- [ ] Create `internal/brew/executor.go` — `Execute(runner, plan) []Result`
+- [x] Create `internal/brew/executor.go` — `Execute(runner, plan) []Result`
   - Run `brew tap` for each tap to add
   - Run `brew install` for each brew to install
   - Run `brew install --cask` for each cask to install
@@ -113,38 +113,38 @@
   - Execution order: taps → brew installs → cask installs → tap removals → brew removals → cask removals → autoremove → cleanup
   - Capture errors per operation, continue on failure (REQ-023)
   - Return all results including failures
-- [ ] Create `internal/brew/executor_test.go`
+- [x] Create `internal/brew/executor_test.go`
   - Test: successful install sequence
   - Test: one failure doesn't stop others
   - Test: tap removal executes `brew untap`
   - Test: autoremove/cleanup only run when flagged
-- [ ] Verify: `go test ./internal/brew/...` passes
+- [x] Verify: `go test ./internal/brew/...` passes
 
 ### 4.2 Confirmation prompt
 > REQ-012, REQ-013 | Design: Apply Command
 
-- [ ] Implement confirmation prompt in apply flow (print plan, ask y/n)
-- [ ] Implement `--yes` flag to skip prompt
-- [ ] Test: prompt blocks execution until confirmed
-- [ ] Test: `--yes` bypasses prompt
+- [x] Implement confirmation prompt in apply flow (print plan, ask y/n)
+- [x] Implement `--yes` flag to skip prompt
+- [x] Test: prompt blocks execution until confirmed
+- [x] Test: `--yes` bypasses prompt
 
 ### 4.3 Apply CLI command
 > REQ-012–022 | Design: Command Flow
 
-- [ ] Create `internal/cli/apply.go` — cobra `apply` subcommand
+- [x] Create `internal/cli/apply.go` — cobra `apply` subcommand
   - Load config, get state, compute plan
   - If plan empty, print "Already in sync" and exit 0
   - Show plan, prompt for confirmation (unless `--yes`)
   - Execute plan, print results
   - Exit 0 on full success, exit 1 if any operation failed
-- [ ] Wire into root command
-- [ ] Verify: full apply cycle works end-to-end
+- [x] Wire into root command
+- [x] Verify: full apply cycle works end-to-end
 
 ### 4.4 Idempotency validation
 > REQ-022 | Design: Testing — idempotency
 
-- [ ] Run `syncd apply --yes`, then `syncd plan` → confirm exit 0
-- [ ] Verify: no side effects on second run
+- [x] Run `syncd apply --yes`, then `syncd plan` → confirm exit 0
+- [x] Verify: no side effects on second run
 
 **Estimate:** ~3 hours
 

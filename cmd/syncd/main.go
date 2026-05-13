@@ -21,6 +21,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default ~/.config/syncd/config.yaml)")
 	rootCmd.AddCommand(cli.NewPlanCmd(&cfgFile))
+	rootCmd.AddCommand(cli.NewApplyCmd(&cfgFile))
 }
 
 func main() {

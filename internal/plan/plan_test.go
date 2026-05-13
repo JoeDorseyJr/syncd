@@ -3,7 +3,6 @@ package plan
 import (
 	"testing"
 
-	"github.com/joedorseyjr/syncd/internal/brew"
 	"github.com/joedorseyjr/syncd/internal/config"
 )
 
@@ -13,7 +12,7 @@ func TestCompute_PackagesToAdd(t *testing.T) {
 		Brews: []string{"git", "go", "wget"},
 		Casks: []string{"firefox", "iterm2"},
 	}
-	state := &brew.State{
+	state := &State{
 		Taps:  []string{"homebrew/cask"},
 		Brews: []string{"git"},
 		Casks: []string{"firefox"},
@@ -31,7 +30,7 @@ func TestCompute_TapsToRemove(t *testing.T) {
 		Taps:    []string{"homebrew/cask"},
 		Cleanup: config.Cleanup{RemoveUnlisted: true},
 	}
-	state := &brew.State{
+	state := &State{
 		Taps: []string{"homebrew/cask", "old/tap"},
 	}
 
@@ -46,7 +45,7 @@ func TestCompute_PackagesToRemove(t *testing.T) {
 		Casks:   []string{"firefox"},
 		Cleanup: config.Cleanup{RemoveUnlisted: true},
 	}
-	state := &brew.State{
+	state := &State{
 		Brews: []string{"git", "wget"},
 		Casks: []string{"firefox", "slack"},
 	}
@@ -62,7 +61,7 @@ func TestCompute_NoRemovalsWhenDisabled(t *testing.T) {
 		Brews:   []string{"git"},
 		Cleanup: config.Cleanup{RemoveUnlisted: false},
 	}
-	state := &brew.State{
+	state := &State{
 		Brews: []string{"git", "wget"},
 	}
 
@@ -82,7 +81,7 @@ func TestCompute_EmptyPlan(t *testing.T) {
 		Brews: []string{"git"},
 		Casks: []string{"firefox"},
 	}
-	state := &brew.State{
+	state := &State{
 		Taps:  []string{"homebrew/cask"},
 		Brews: []string{"git"},
 		Casks: []string{"firefox"},
@@ -99,7 +98,7 @@ func TestCompute_CaseSensitivity(t *testing.T) {
 	cfg := &config.Config{
 		Brews: []string{"Git"},
 	}
-	state := &brew.State{
+	state := &State{
 		Brews: []string{"git"},
 	}
 

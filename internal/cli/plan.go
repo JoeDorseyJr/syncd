@@ -26,7 +26,11 @@ func NewPlanCmd(cfgFile *string) *cobra.Command {
 				return fmt.Errorf("querying Homebrew state: %w", err)
 			}
 
-			p := plan.Compute(cfg, state)
+			p := plan.Compute(cfg, &plan.State{
+				Taps:  state.Taps,
+				Brews: state.Brews,
+				Casks: state.Casks,
+			})
 			if p.IsEmpty() {
 				fmt.Println("Already in sync. No changes needed.")
 				return nil
