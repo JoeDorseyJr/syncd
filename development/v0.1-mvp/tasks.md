@@ -64,7 +64,7 @@
 ### 3.1 Diff calculator
 > REQ-005, REQ-006, REQ-007, REQ-008, REQ-009, REQ-019, REQ-030 | Design: Diff Calculator
 
-- [ ] Create `internal/plan/plan.go` — `Plan` struct + `Compute(config, state) *Plan`
+- [x] Create `internal/plan/plan.go` — `Plan` struct + `Compute(config, state) *Plan`
   - Taps in config but not in state → `TapsToAdd`
   - Taps in state but not in config → `TapsToRemove` (only if `remove_unlisted`)
   - Brews in config but not in state → `BrewsToInstall`
@@ -72,25 +72,25 @@
   - Brews in state but not in config → `BrewsToRemove` (only if `remove_unlisted`)
   - Casks in state but not in config → `CasksToRemove` (only if `remove_unlisted`)
   - Set `Autoremove` and `ClearCache` from cleanup config
-- [ ] Implement `Plan.IsEmpty() bool`
-- [ ] Create `internal/plan/plan_test.go`
+- [x] Implement `Plan.IsEmpty() bool`
+- [x] Create `internal/plan/plan_test.go`
   - Test: packages to add (tap, brew, cask)
   - Test: taps to remove when `remove_unlisted: true`
   - Test: packages to remove when `remove_unlisted: true`
   - Test: no removals when `remove_unlisted: false`
   - Test: empty plan when system matches config
   - Test: case sensitivity handling
-- [ ] Verify: `go test ./internal/plan/...` passes
+- [x] Verify: `go test ./internal/plan/...` passes
 
 ### 3.2 Plan CLI command
 > REQ-010, REQ-011 | Design: Command Flow, Exit Codes
 
-- [ ] Create `internal/cli/plan.go` — cobra `plan` subcommand
+- [x] Create `internal/cli/plan.go` — cobra `plan` subcommand
   - Load config, get state, compute plan
   - Print formatted diff (adds in green, removes in red)
   - Exit 0 if plan empty, exit 2 if changes pending
-- [ ] Wire into root command in `cmd/syncd/main.go`
-- [ ] Verify: `syncd plan` runs without modifying system; exit code correct
+- [x] Wire into root command in `cmd/syncd/main.go`
+- [x] Verify: `syncd plan` runs without modifying system; exit code correct
 
 **Estimate:** ~2 hours
 

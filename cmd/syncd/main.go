@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/joedorseyjr/syncd/internal/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -19,6 +20,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default ~/.config/syncd/config.yaml)")
+	rootCmd.AddCommand(cli.NewPlanCmd(&cfgFile))
 }
 
 func main() {
