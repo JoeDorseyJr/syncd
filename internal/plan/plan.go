@@ -41,20 +41,33 @@ type State struct {
 // Compute calculates the diff between desired config and actual state.
 func Compute(cfg *config.Config, state *State) *Plan {
 	p := &Plan{
-		TapsToAdd:      diff(cfg.Taps, state.Taps),
-		BrewsToInstall: diff(cfg.Brews, state.Brews),
-		CasksToInstall: diff(cfg.Casks, state.Casks),
+		TapsToAdd:      diff(dedup(cfg.Taps), state.Taps),
+		BrewsToInstall: diff(dedup(cfg.Brews), state.Brews),
+		CasksToInstall: diff(dedup(cfg.Casks), state.Casks),
 		Autoremove:     cfg.Cleanup.Autoremove,
 		ClearCache:     cfg.Cleanup.ClearCache,
 	}
 
 	if cfg.Cleanup.RemoveUnlisted {
-		p.TapsToRemove = diff(state.Taps, cfg.Taps)
-		p.BrewsToRemove = diff(state.Brews, cfg.Brews)
-		p.CasksToRemove = diff(state.Casks, cfg.Casks)
+		p.TapsToRemove = diff(state.Taps, dedup(cfg.Taps))
+		p.BrewsToRemove = diff(state.Brews, dedup(cfg.Brews))
+		p.CasksToRemove = diff(state.Casks, dedup(cfg.Casks))
 	}
 
 	return p
+}
+
+// dedup returns unique items preserving first-seen order.
+func dedup(items []string) []string {
+	seen := make(map[string]struct{}, len(items))
+	var result []string
+	for _, item := range items {
+		if _, ok := seen[item]; !ok {
+			seen[item] = struct{}{}
+			result = append(result, item)
+		}
+	}
+	return result
 }
 
 // diff returns items in a that are not in b.

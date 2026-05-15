@@ -48,8 +48,8 @@
 **REQ-010:** `syncd plan` shall not modify the system (read-only).
 - Verification: Run `syncd plan`, confirm no packages installed or removed (compare `brew list` before and after).
 
-**REQ-011:** `syncd plan` shall exit with code 0 if no changes needed, code 2 if changes pending.
-- Verification: Run on a synced system → exit 0. Add a new brew to config → exit 2.
+**REQ-011:** `syncd plan` shall exit with code 0 if no changes needed, code 2 if changes pending. Cleanup-only actions (`autoremove`, `clear_cache`) are recurring maintenance and do not count as pending changes for exit-code purposes.
+- Verification: Run on a synced system → exit 0. Add a new brew to config → exit 2. Enable only cleanup flags on synced system → exit 0.
 
 ### Apply Command
 
@@ -83,7 +83,7 @@
 **REQ-021:** `syncd apply` shall run `brew cleanup` when `cleanup.clear_cache` is true.
 - Verification: Run `syncd apply --yes` with `clear_cache: true`, confirm cleanup was executed (check output).
 
-**REQ-022:** `syncd apply` shall be idempotent — running it twice with no config changes produces no modifications on the second run.
+**REQ-022:** `syncd apply` shall be idempotent — running it twice with no config changes produces no modifications on the second run. Cleanup actions (`autoremove`, `clear_cache`) are recurring maintenance that run on every apply when enabled; idempotency applies to package install/remove operations.
 - Verification: Run `syncd apply --yes`, then run `syncd plan`, confirm exit code 0 (no changes).
 
 ### Error Handling

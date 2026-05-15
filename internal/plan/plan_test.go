@@ -133,6 +133,21 @@ func TestCompute_CaseSensitivity(t *testing.T) {
 	assertSlice(t, "BrewsToInstall", p.BrewsToInstall, []string{"Git"})
 }
 
+func TestCompute_DuplicateConfigEntries(t *testing.T) {
+	cfg := &config.Config{
+		Taps:  []string{"homebrew/cask", "homebrew/cask"},
+		Brews: []string{"git", "go", "git"},
+		Casks: []string{"firefox", "firefox"},
+	}
+	state := &State{}
+
+	p := Compute(cfg, state)
+
+	assertSlice(t, "TapsToAdd", p.TapsToAdd, []string{"homebrew/cask"})
+	assertSlice(t, "BrewsToInstall", p.BrewsToInstall, []string{"git", "go"})
+	assertSlice(t, "CasksToInstall", p.CasksToInstall, []string{"firefox"})
+}
+
 func assertSlice(t *testing.T, name string, got, want []string) {
 	t.Helper()
 	if len(got) != len(want) {

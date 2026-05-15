@@ -25,6 +25,10 @@ func NewApplyCmd(cfgFile *string) *cobra.Command {
 				return err
 			}
 
+			if err := brew.CheckAvailable(); err != nil {
+				return err
+			}
+
 			runner := &brew.ExecRunner{}
 			state, err := brew.GetState(runner)
 			if err != nil {

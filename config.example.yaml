@@ -1,0 +1,20 @@
+# Example syncd configuration
+# Copy to ~/.config/syncd/config.yaml and customize
+
+taps:
+  - homebrew/cask-fonts
+
+brews:
+  - git
+  - go
+  - neovim
+
+casks:
+  - iterm2
+  - visual-studio-code
+  - firefox
+
+cleanup:
+  remove_unlisted: false
+  clear_cache: true
+  autoremove: true

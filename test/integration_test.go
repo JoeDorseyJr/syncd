@@ -280,6 +280,122 @@ cleanup:
 	}
 }
 
+func TestApply_CancelDoesNotExecute(t *testing.T) {
+	stateDir := setupFakeState(t, nil, nil, nil)
+	cfg := writeConfig(t, `
+brews:
+  - cowsay
+`)
+	// Pipe "n" to stdin to cancel
+	cmd := exec.Command(binary, "apply", "--config", cfg)
+	cmd.Env = append(os.Environ(),
+		"PATH="+filepath.Dir(fakeBrew)+":"+os.Getenv("PATH"),
+		"FAKE_BREW_STATE="+stateDir,
+	)
+	cmd.Stdin = strings.NewReader("n\n")
+	out, err := cmd.CombinedOutput()
+	code := 0
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			code = exitErr.ExitCode()
+		}
+	}
+	if code != 0 {
+		t.Errorf("expected exit 0 on cancel, got %d", code)
+	}
+	if !strings.Contains(string(out), "Cancelled") {
+		t.Errorf("expected 'Cancelled' in output, got: %s", string(out))
+	}
+	// Verify nothing was installed
+	brews := readFakeState(t, stateDir, "brews")
+	if strings.Contains(brews, "cowsay") {
+		t.Error("cowsay should NOT be installed after cancel")
+	}
+}
+
+func TestApply_ConfirmExecutes(t *testing.T) {
+	stateDir := setupFakeState(t, nil, nil, nil)
+	cfg := writeConfig(t, `
+brews:
+  - cowsay
+`)
+	cmd := exec.Command(binary, "apply", "--config", cfg)
+	cmd.Env = append(os.Environ(),
+		"PATH="+filepath.Dir(fakeBrew)+":"+os.Getenv("PATH"),
+		"FAKE_BREW_STATE="+stateDir,
+	)
+	cmd.Stdin = strings.NewReader("y\n")
+	out, err := cmd.CombinedOutput()
+	code := 0
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			code = exitErr.ExitCode()
+		}
+	}
+	if code != 0 {
+		t.Errorf("expected exit 0 on confirm, got %d: %s", code, string(out))
+	}
+	brews := readFakeState(t, stateDir, "brews")
+	if !strings.Contains(brews, "cowsay") {
+		t.Error("cowsay should be installed after confirm")
+	}
+}
+
+func TestPlan_ExitTwoOnDrift(t *testing.T) {
+	stateDir := setupFakeState(t, nil, nil, nil)
+	cfg := writeConfig(t, `
+brews:
+  - newpkg
+`)
+	out, _ := runSyncdExpect(t, stateDir, 2, "plan", "--config", cfg)
+	if !strings.Contains(out, "newpkg") {
+		t.Errorf("expected plan to show newpkg, got: %s", out)
+	}
+}
+
+func TestApply_FailureExitOne(t *testing.T) {
+	stateDir := setupFakeState(t, nil, nil, nil)
+	cfg := writeConfig(t, `
+brews:
+  - syncd-test-nonexistent-pkg
+`)
+	runSyncdExpect(t, stateDir, 1, "apply", "--yes", "--config", cfg)
+}
+
+func TestPlan_MissingBrewShowsGuidance(t *testing.T) {
+	stateDir := setupFakeState(t, nil, nil, nil)
+	cfg := writeConfig(t, `
+brews:
+  - git
+`)
+	// Use empty PATH so brew is not found
+	cmd := exec.Command(binary, "plan", "--config", cfg)
+	cmd.Env = []string{
+		"PATH=/nonexistent",
+		"HOME=" + os.Getenv("HOME"),
+		"FAKE_BREW_STATE=" + stateDir,
+	}
+	out, _ := cmd.CombinedOutput()
+	if !strings.Contains(string(out), "https://brew.sh") {
+		t.Errorf("expected install guidance with brew.sh URL, got: %s", string(out))
+	}
+}
+
+func TestApply_IdempotentWithCleanup(t *testing.T) {
+	stateDir := setupFakeState(t, nil, nil, nil)
+	cfg := writeConfig(t, `
+brews:
+  - cowsay
+cleanup:
+  autoremove: true
+  clear_cache: true
+`)
+	runSyncdExpect(t, stateDir, 0, "apply", "--yes", "--config", cfg)
+
+	// Second plan should exit 0 (cleanup-only is not drift)
+	runSyncdExpect(t, stateDir, 0, "plan", "--config", cfg)
+}
+
 // Helpers
 
 func writeConfig(t *testing.T, content string) string {

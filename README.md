@@ -23,7 +23,7 @@ syncd apply     # Apply desired state
 ## What It Manages (v0.1)
 
 - **Homebrew taps, formulae, and casks**
-- **System cleanup** (remove undeclared formulae/casks, prune deps, clear caches)
+- **System cleanup** (remove undeclared taps/formulae/casks, prune deps, clear caches)
 
 ## Config
 
@@ -55,7 +55,7 @@ cleanup:
 3. Computes a diff
 4. Applies changes (with confirmation unless `--yes`)
 
-Cleanup mode removes undeclared formulae and casks (when `cleanup.remove_unlisted` is true), prunes unused dependencies, and clears the Homebrew cache.
+Cleanup mode removes undeclared taps, formulae, and casks (when `cleanup.remove_unlisted` is true), prunes unused dependencies, and clears the Homebrew cache.
 
 ## Built With
 

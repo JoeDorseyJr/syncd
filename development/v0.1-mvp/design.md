@@ -176,9 +176,9 @@ Commands are executed in this order: tap adds → brew installs → cask install
 
 | Code | Meaning |
 |------|---------|
-| 0 | Success / no changes needed |
+| 0 | Success / no changes needed (cleanup-only plans exit 0) |
 | 1 | Execution error (one or more operations failed) |
-| 2 | Plan has pending changes (plan command only) |
+| 2 | Plan has pending package changes (plan command only) |
 
 ### Config Resolution
 
@@ -276,9 +276,11 @@ type CommandRunner interface {
 Each REQ has a defined verification method in requirements.md. The test suite maps 1:1:
 - REQ-001–004 → `config_test.go`
 - REQ-005–011 → `plan_test.go` + integration
-- REQ-012–022 → `apply_test.go` + integration
+- REQ-012–022 → `cli_test.go` + `executor_test.go` + integration
 - REQ-023–024 → `executor_test.go` + integration
 - REQ-025–029 → Build verification + code review
+- REQ-030–031 → `plan_test.go` + `executor_test.go` + integration
+- REQ-032 → integration (--config flag)
 
 ---
 
