@@ -67,6 +67,21 @@ func HasErrors(results []Result) bool {
 	return false
 }
 
+// Upgrade runs brew upgrade for the given brews and casks.
+// Continues on failure, collecting all results.
+func Upgrade(runner CommandRunner, brews, casks []string) []Result {
+	var results []Result
+	for _, name := range brews {
+		_, err := runner.Run("brew", "upgrade", name)
+		results = append(results, Result{Action: "upgrade", Package: name, Err: err})
+	}
+	for _, name := range casks {
+		_, err := runner.Run("brew", "upgrade", "--cask", name)
+		results = append(results, Result{Action: "upgrade-cask", Package: name, Err: err})
+	}
+	return results
+}
+
 // FormatResults returns a human-readable summary of execution results.
 func FormatResults(results []Result, green, red, reset string) string {
 	var s string

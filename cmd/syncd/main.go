@@ -26,6 +26,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&cli.NoColor, "no-color", false, "disable colored output")
 	rootCmd.AddCommand(cli.NewPlanCmd(&cfgFile))
 	rootCmd.AddCommand(cli.NewApplyCmd(&cfgFile))
+	rootCmd.AddCommand(cli.NewUpgradeCmd(&cfgFile))
 }
 
 func main() {

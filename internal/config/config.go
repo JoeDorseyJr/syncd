@@ -13,6 +13,7 @@ type Config struct {
 	Taps    []string `yaml:"taps"`
 	Brews   []string `yaml:"brews"`
 	Casks   []string `yaml:"casks"`
+	Pin     []string `yaml:"pin"`
 	Cleanup Cleanup  `yaml:"cleanup"`
 }
 

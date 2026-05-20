@@ -113,3 +113,51 @@ func TestGetLeaves_CommandFailure(t *testing.T) {
 		t.Fatal("expected error on command failure")
 	}
 }
+
+func TestGetOutdated_ParsesOutput(t *testing.T) {
+	mock := &MockRunner{
+		Outputs: []MockOutput{
+			{Out: []byte("node\nwget\n")},
+		},
+	}
+
+	outdated, err := GetOutdated(mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(outdated) != 2 || outdated[0] != "node" || outdated[1] != "wget" {
+		t.Errorf("unexpected outdated: %v", outdated)
+	}
+}
+
+func TestGetOutdated_EmptyOutput(t *testing.T) {
+	mock := &MockRunner{
+		Outputs: []MockOutput{
+			{Out: []byte("")},
+		},
+	}
+
+	outdated, err := GetOutdated(mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(outdated) != 0 {
+		t.Errorf("expected 0 outdated, got %d", len(outdated))
+	}
+}
+
+func TestGetOutdatedCasks_ParsesOutput(t *testing.T) {
+	mock := &MockRunner{
+		Outputs: []MockOutput{
+			{Out: []byte("firefox\n")},
+		},
+	}
+
+	outdated, err := GetOutdatedCasks(mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(outdated) != 1 || outdated[0] != "firefox" {
+		t.Errorf("unexpected outdated casks: %v", outdated)
+	}
+}

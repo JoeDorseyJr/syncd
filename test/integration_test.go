@@ -110,6 +110,26 @@ case "$1" in
   autoremove|cleanup)
     # No-op for fake
     ;;
+  outdated)
+    if [[ "$*" == *"--cask"* ]]; then
+      cat "$STATE_DIR/outdated_casks" 2>/dev/null || true
+    else
+      cat "$STATE_DIR/outdated_brews" 2>/dev/null || true
+    fi
+    ;;
+  upgrade)
+    if [[ "$2" == "--cask" ]]; then
+      if [[ "$3" == *"fail"* ]]; then
+        echo "Error: upgrade failed for $3" >&2
+        exit 1
+      fi
+    else
+      if [[ "$2" == *"fail"* ]]; then
+        echo "Error: upgrade failed for $2" >&2
+        exit 1
+      fi
+    fi
+    ;;
   --version)
     echo "Homebrew 4.0.0 (fake)"
     ;;
@@ -142,6 +162,16 @@ func setupFakeStateWithLeaves(t *testing.T, taps, brews, leaves, casks []string)
 		os.WriteFile(filepath.Join(dir, "casks"), []byte(strings.Join(casks, "\n")+"\n"), 0644)
 	}
 	return dir
+}
+
+func setOutdated(t *testing.T, stateDir string, brews, casks []string) {
+	t.Helper()
+	if len(brews) > 0 {
+		os.WriteFile(filepath.Join(stateDir, "outdated_brews"), []byte(strings.Join(brews, "\n")+"\n"), 0644)
+	}
+	if len(casks) > 0 {
+		os.WriteFile(filepath.Join(stateDir, "outdated_casks"), []byte(strings.Join(casks, "\n")+"\n"), 0644)
+	}
 }
 
 func TestPlan_DoesNotModifyState(t *testing.T) {
@@ -471,6 +501,81 @@ cleanup:
 
 	// Second plan should exit 0 (cleanup-only is not drift)
 	runSyncdExpect(t, stateDir, 0, "plan", "--config", cfg)
+}
+
+func TestUpgrade_SuccessExitZero(t *testing.T) {
+	stateDir := setupFakeState(t, nil, []string{"node", "wget"}, nil)
+	setOutdated(t, stateDir, []string{"node", "wget"}, nil)
+
+	out, _ := runSyncdExpect(t, stateDir, 0, "upgrade", "--yes")
+	if !strings.Contains(out, "node") {
+		t.Errorf("expected node in upgrade output, got: %s", out)
+	}
+}
+
+func TestUpgrade_PinnedPackageSkipped(t *testing.T) {
+	stateDir := setupFakeState(t, nil, []string{"node", "wget"}, nil)
+	setOutdated(t, stateDir, []string{"node", "wget"}, nil)
+	cfg := writeConfig(t, `
+brews:
+  - node
+  - wget
+pin:
+  - node
+`)
+	out, _ := runSyncdExpect(t, stateDir, 0, "upgrade", "--yes", "--config", cfg)
+	if strings.Contains(out, "upgrade node") {
+		t.Errorf("pinned package 'node' should not be upgraded, got: %s", out)
+	}
+	if !strings.Contains(out, "wget") {
+		t.Errorf("expected wget in upgrade output, got: %s", out)
+	}
+}
+
+func TestUpgrade_OneFailureExitOne(t *testing.T) {
+	stateDir := setupFakeState(t, nil, []string{"fail-pkg", "wget"}, nil)
+	setOutdated(t, stateDir, []string{"fail-pkg", "wget"}, nil)
+
+	out, _ := runSyncdExpect(t, stateDir, 1, "upgrade", "--yes")
+	if !strings.Contains(out, "wget") {
+		t.Errorf("expected wget to still be upgraded, got: %s", out)
+	}
+}
+
+func TestUpgrade_CancelWithN(t *testing.T) {
+	stateDir := setupFakeState(t, nil, []string{"node"}, nil)
+	setOutdated(t, stateDir, []string{"node"}, nil)
+
+	cmd := exec.Command(binary, "upgrade")
+	cmd.Env = append(os.Environ(),
+		"PATH="+filepath.Dir(fakeBrew)+":"+os.Getenv("PATH"),
+		"FAKE_BREW_STATE="+stateDir,
+	)
+	cmd.Stdin = strings.NewReader("n\n")
+	out, err := cmd.CombinedOutput()
+	code := 0
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			code = exitErr.ExitCode()
+		}
+	}
+	if code != 0 {
+		t.Errorf("expected exit 0 on cancel, got %d", code)
+	}
+	if !strings.Contains(string(out), "Cancelled") {
+		t.Errorf("expected 'Cancelled' in output, got: %s", string(out))
+	}
+}
+
+func TestUpgrade_WorksWithoutConfig(t *testing.T) {
+	stateDir := setupFakeState(t, nil, []string{"node"}, nil)
+	setOutdated(t, stateDir, []string{"node"}, nil)
+
+	// No --config flag, no default config — should still work
+	out, _ := runSyncdExpect(t, stateDir, 0, "upgrade", "--yes")
+	if !strings.Contains(out, "node") {
+		t.Errorf("expected node in upgrade output, got: %s", out)
+	}
 }
 
 // Helpers

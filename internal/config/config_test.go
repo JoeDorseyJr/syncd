@@ -136,6 +136,41 @@ brews:
 	}
 }
 
+func TestLoad_PinField(t *testing.T) {
+	content := `
+brews:
+  - git
+pin:
+  - node@22
+  - firefox
+`
+	path := writeTemp(t, content)
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(cfg.Pin) != 2 {
+		t.Errorf("expected 2 pins, got %d", len(cfg.Pin))
+	}
+	if cfg.Pin[0] != "node@22" || cfg.Pin[1] != "firefox" {
+		t.Errorf("unexpected pin values: %v", cfg.Pin)
+	}
+}
+
+func TestLoad_InvalidPinObject(t *testing.T) {
+	content := `
+brews:
+  - git
+pin:
+  name: node
+`
+	path := writeTemp(t, content)
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("expected error for object in pin field")
+	}
+}
+
 func writeTemp(t *testing.T, content string) string {
 	t.Helper()
 	dir := t.TempDir()

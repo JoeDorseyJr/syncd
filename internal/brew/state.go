@@ -34,6 +34,16 @@ func GetLeaves(runner CommandRunner) ([]string, error) {
 	return runAndParse(runner, "brew", "leaves")
 }
 
+// GetOutdated returns formulae with available upgrades.
+func GetOutdated(runner CommandRunner) ([]string, error) {
+	return runAndParse(runner, "brew", "outdated", "--formula", "-1")
+}
+
+// GetOutdatedCasks returns casks with available upgrades.
+func GetOutdatedCasks(runner CommandRunner) ([]string, error) {
+	return runAndParse(runner, "brew", "outdated", "--cask", "-1")
+}
+
 func runAndParse(runner CommandRunner, name string, args ...string) ([]string, error) {
 	out, err := runner.Run(name, args...)
 	if err != nil {
