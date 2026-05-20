@@ -22,35 +22,35 @@ func Execute(runner CommandRunner, p *plan.Plan) []Result {
 	var results []Result
 
 	for _, name := range p.TapsToAdd {
-		_, err := runner.Run("brew", "tap", name)
+		_, err := runner.RunMutate("brew", "tap", name)
 		results = append(results, Result{Action: "tap", Package: name, Err: err})
 	}
 	for _, name := range p.BrewsToInstall {
-		_, err := runner.Run("brew", "install", name)
+		_, err := runner.RunMutate("brew", "install", name)
 		results = append(results, Result{Action: "install", Package: name, Err: err})
 	}
 	for _, name := range p.CasksToInstall {
-		_, err := runner.Run("brew", "install", "--cask", name)
+		_, err := runner.RunMutate("brew", "install", "--cask", name)
 		results = append(results, Result{Action: "install-cask", Package: name, Err: err})
 	}
 	for _, name := range p.BrewsToRemove {
-		_, err := runner.Run("brew", "uninstall", name)
+		_, err := runner.RunMutate("brew", "uninstall", name)
 		results = append(results, Result{Action: "uninstall", Package: name, Err: err})
 	}
 	for _, name := range p.CasksToRemove {
-		_, err := runner.Run("brew", "uninstall", "--cask", name)
+		_, err := runner.RunMutate("brew", "uninstall", "--cask", name)
 		results = append(results, Result{Action: "uninstall-cask", Package: name, Err: err})
 	}
 	for _, name := range p.TapsToRemove {
-		_, err := runner.Run("brew", "untap", name)
+		_, err := runner.RunMutate("brew", "untap", name)
 		results = append(results, Result{Action: "untap", Package: name, Err: err})
 	}
 	if p.Autoremove {
-		_, err := runner.Run("brew", "autoremove")
+		_, err := runner.RunMutate("brew", "autoremove")
 		results = append(results, Result{Action: "autoremove", Err: err})
 	}
 	if p.ClearCache {
-		_, err := runner.Run("brew", "cleanup")
+		_, err := runner.RunMutate("brew", "cleanup")
 		results = append(results, Result{Action: "cleanup", Err: err})
 	}
 
@@ -72,11 +72,11 @@ func HasErrors(results []Result) bool {
 func Upgrade(runner CommandRunner, brews, casks []string) []Result {
 	var results []Result
 	for _, name := range brews {
-		_, err := runner.Run("brew", "upgrade", name)
+		_, err := runner.RunMutate("brew", "upgrade", name)
 		results = append(results, Result{Action: "upgrade", Package: name, Err: err})
 	}
 	for _, name := range casks {
-		_, err := runner.Run("brew", "upgrade", "--cask", name)
+		_, err := runner.RunMutate("brew", "upgrade", "--cask", name)
 		results = append(results, Result{Action: "upgrade-cask", Package: name, Err: err})
 	}
 	return results

@@ -2,6 +2,7 @@ package brew
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -9,7 +10,11 @@ import (
 // CommandRunner abstracts command execution for testability.
 type CommandRunner interface {
 	Run(name string, args ...string) ([]byte, error)
+	RunMutate(name string, args ...string) ([]byte, error)
 }
+
+// Verbose controls whether mutating commands stream output to stdout/stderr.
+var Verbose bool
 
 // ExecRunner executes real shell commands.
 type ExecRunner struct{}
@@ -18,7 +23,6 @@ func (r *ExecRunner) Run(name string, args ...string) ([]byte, error) {
 	cmd := exec.Command(name, args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		// Wrap with command context and captured output for diagnostics
 		return out, &RunError{
 			Cmd:    name + " " + strings.Join(args, " "),
 			Output: strings.TrimSpace(string(out)),
@@ -26,6 +30,23 @@ func (r *ExecRunner) Run(name string, args ...string) ([]byte, error) {
 		}
 	}
 	return out, nil
+}
+
+func (r *ExecRunner) RunMutate(name string, args ...string) ([]byte, error) {
+	if Verbose {
+		cmd := exec.Command(name, args...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err := cmd.Run()
+		if err != nil {
+			return nil, &RunError{
+				Cmd: name + " " + strings.Join(args, " "),
+				Err: err,
+			}
+		}
+		return nil, nil
+	}
+	return r.Run(name, args...)
 }
 
 // RunError provides diagnostic context for failed commands.
@@ -73,4 +94,8 @@ func (m *MockRunner) Run(name string, args ...string) ([]byte, error) {
 	out := m.Outputs[m.idx]
 	m.idx++
 	return out.Out, out.Err
+}
+
+func (m *MockRunner) RunMutate(name string, args ...string) ([]byte, error) {
+	return m.Run(name, args...)
 }

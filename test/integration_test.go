@@ -677,6 +677,42 @@ func TestInit_RefusesOverwriteWithoutForce(t *testing.T) {
 	runSyncdExpect(t, stateDir, 0, "init", "--output", outFile, "--force")
 }
 
+func TestApply_VerboseShowsOutput(t *testing.T) {
+	stateDir := setupFakeState(t, nil, nil, nil)
+	cfg := writeConfig(t, `
+brews:
+  - cowsay
+`)
+	// With --verbose, brew output should be visible (fake brew doesn't print much but command runs)
+	out, _ := runSyncdExpect(t, stateDir, 0, "apply", "--yes", "--verbose", "--config", cfg)
+	if !strings.Contains(out, "Applying") {
+		t.Errorf("expected 'Applying' in verbose output, got: %s", out)
+	}
+}
+
+func TestUpgrade_VerboseShowsOutput(t *testing.T) {
+	stateDir := setupFakeState(t, nil, []string{"node"}, nil)
+	setOutdated(t, stateDir, []string{"node"}, nil)
+
+	out, _ := runSyncdExpect(t, stateDir, 0, "upgrade", "--yes", "--verbose")
+	if !strings.Contains(out, "Upgrading") {
+		t.Errorf("expected 'Upgrading' in verbose output, got: %s", out)
+	}
+}
+
+func TestApply_DefaultNonVerbose(t *testing.T) {
+	stateDir := setupFakeState(t, nil, nil, nil)
+	cfg := writeConfig(t, `
+brews:
+  - cowsay
+`)
+	out, _ := runSyncdExpect(t, stateDir, 0, "apply", "--yes", "--config", cfg)
+	// Should show result lines
+	if !strings.Contains(out, "install cowsay") {
+		t.Errorf("expected result summary in non-verbose output, got: %s", out)
+	}
+}
+
 // Helpers
 
 func writeConfig(t *testing.T, content string) string {
