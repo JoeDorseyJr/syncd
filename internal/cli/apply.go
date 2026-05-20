@@ -35,10 +35,16 @@ func NewApplyCmd(cfgFile *string) *cobra.Command {
 				return fmt.Errorf("querying Homebrew state: %w", err)
 			}
 
+			leaves, err := brew.GetLeaves(runner)
+			if err != nil {
+				return fmt.Errorf("querying Homebrew leaves: %w", err)
+			}
+
 			p := plan.Compute(cfg, &plan.State{
-				Taps:  state.Taps,
-				Brews: state.Brews,
-				Casks: state.Casks,
+				Taps:   state.Taps,
+				Brews:  state.Brews,
+				Leaves: leaves,
+				Casks:  state.Casks,
 			})
 
 			if p.IsEmpty() {

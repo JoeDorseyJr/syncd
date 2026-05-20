@@ -69,6 +69,9 @@ case "$1" in
       mv "$STATE_DIR/taps.tmp" "$STATE_DIR/taps"
     fi
     ;;
+  leaves)
+    cat "$STATE_DIR/leaves" 2>/dev/null || true
+    ;;
   list)
     if [[ "$*" == *"--cask"* ]]; then
       cat "$STATE_DIR/casks" 2>/dev/null || true
@@ -120,6 +123,10 @@ esac
 }
 
 func setupFakeState(t *testing.T, taps, brews, casks []string) string {
+	return setupFakeStateWithLeaves(t, taps, brews, brews, casks)
+}
+
+func setupFakeStateWithLeaves(t *testing.T, taps, brews, leaves, casks []string) string {
 	t.Helper()
 	dir := t.TempDir()
 	if len(taps) > 0 {
@@ -127,6 +134,9 @@ func setupFakeState(t *testing.T, taps, brews, casks []string) string {
 	}
 	if len(brews) > 0 {
 		os.WriteFile(filepath.Join(dir, "brews"), []byte(strings.Join(brews, "\n")+"\n"), 0644)
+	}
+	if len(leaves) > 0 {
+		os.WriteFile(filepath.Join(dir, "leaves"), []byte(strings.Join(leaves, "\n")+"\n"), 0644)
 	}
 	if len(casks) > 0 {
 		os.WriteFile(filepath.Join(dir, "casks"), []byte(strings.Join(casks, "\n")+"\n"), 0644)
@@ -209,6 +219,48 @@ cleanup:
 	}
 	if !strings.Contains(brews, "git") {
 		t.Error("git should remain")
+	}
+}
+
+func TestApply_DependencyOnlyNotRemoved(t *testing.T) {
+	// libssh2 is installed but NOT a leaf (it's a dependency)
+	stateDir := setupFakeStateWithLeaves(t, nil,
+		[]string{"git", "libssh2"},
+		[]string{"git"},
+		nil,
+	)
+	cfg := writeConfig(t, `
+brews:
+  - git
+cleanup:
+  remove_unlisted: true
+`)
+	runSyncdExpect(t, stateDir, 0, "apply", "--yes", "--config", cfg)
+
+	brews := readFakeState(t, stateDir, "brews")
+	if !strings.Contains(brews, "libssh2") {
+		t.Error("libssh2 (dependency-only) should NOT have been removed")
+	}
+}
+
+func TestPlan_LeafNotInConfigIsRemoved(t *testing.T) {
+	stateDir := setupFakeStateWithLeaves(t, nil,
+		[]string{"git", "wget", "libssh2"},
+		[]string{"git", "wget"},
+		nil,
+	)
+	cfg := writeConfig(t, `
+brews:
+  - git
+cleanup:
+  remove_unlisted: true
+`)
+	out, _ := runSyncdExpect(t, stateDir, 2, "plan", "--config", cfg)
+	if !strings.Contains(out, "wget") {
+		t.Errorf("expected wget in removal plan, got: %s", out)
+	}
+	if strings.Contains(out, "libssh2") {
+		t.Errorf("libssh2 (dep-only) should NOT be in removal plan, got: %s", out)
 	}
 }
 

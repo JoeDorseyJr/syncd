@@ -65,3 +65,51 @@ func TestGetState_CommandFailure(t *testing.T) {
 		t.Fatal("expected error on command failure")
 	}
 }
+
+func TestGetLeaves_ParsesOutput(t *testing.T) {
+	mock := &MockRunner{
+		Outputs: []MockOutput{
+			{Out: []byte("git\nwget\n")},
+		},
+	}
+
+	leaves, err := GetLeaves(mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(leaves) != 2 {
+		t.Errorf("expected 2 leaves, got %d", len(leaves))
+	}
+	if leaves[0] != "git" || leaves[1] != "wget" {
+		t.Errorf("unexpected leaves: %v", leaves)
+	}
+}
+
+func TestGetLeaves_EmptyOutput(t *testing.T) {
+	mock := &MockRunner{
+		Outputs: []MockOutput{
+			{Out: []byte("")},
+		},
+	}
+
+	leaves, err := GetLeaves(mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(leaves) != 0 {
+		t.Errorf("expected 0 leaves, got %d", len(leaves))
+	}
+}
+
+func TestGetLeaves_CommandFailure(t *testing.T) {
+	mock := &MockRunner{
+		Outputs: []MockOutput{
+			{Err: errors.New("brew leaves failed")},
+		},
+	}
+
+	_, err := GetLeaves(mock)
+	if err == nil {
+		t.Fatal("expected error on command failure")
+	}
+}

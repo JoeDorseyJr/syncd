@@ -33,9 +33,10 @@ func (p *Plan) IsEmpty() bool {
 
 // State represents installed packages (mirrors brew.State to avoid import cycle).
 type State struct {
-	Taps  []string
-	Brews []string
-	Casks []string
+	Taps   []string
+	Brews  []string
+	Leaves []string
+	Casks  []string
 }
 
 // Compute calculates the diff between desired config and actual state.
@@ -50,7 +51,8 @@ func Compute(cfg *config.Config, state *State) *Plan {
 
 	if cfg.Cleanup.RemoveUnlisted {
 		p.TapsToRemove = diff(state.Taps, dedup(cfg.Taps))
-		p.BrewsToRemove = diff(state.Brews, dedup(cfg.Brews))
+		// Only remove leaves (explicitly-installed), not dependencies
+		p.BrewsToRemove = diff(state.Leaves, dedup(cfg.Brews))
 		p.CasksToRemove = diff(state.Casks, dedup(cfg.Casks))
 	}
 

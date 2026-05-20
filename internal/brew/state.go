@@ -29,6 +29,11 @@ func GetState(runner CommandRunner) (*State, error) {
 	return &State{Taps: taps, Brews: brews, Casks: casks}, nil
 }
 
+// GetLeaves returns explicitly-installed formulae (not auto-deps).
+func GetLeaves(runner CommandRunner) ([]string, error) {
+	return runAndParse(runner, "brew", "leaves")
+}
+
 func runAndParse(runner CommandRunner, name string, args ...string) ([]string, error) {
 	out, err := runner.Run(name, args...)
 	if err != nil {

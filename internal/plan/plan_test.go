@@ -46,8 +46,9 @@ func TestCompute_PackagesToRemove(t *testing.T) {
 		Cleanup: config.Cleanup{RemoveUnlisted: true},
 	}
 	state := &State{
-		Brews: []string{"git", "wget"},
-		Casks: []string{"firefox", "slack"},
+		Brews:  []string{"git", "wget", "libssh2"},
+		Leaves: []string{"git", "wget"},
+		Casks:  []string{"firefox", "slack"},
 	}
 
 	p := Compute(cfg, state)
@@ -62,7 +63,8 @@ func TestCompute_NoRemovalsWhenDisabled(t *testing.T) {
 		Cleanup: config.Cleanup{RemoveUnlisted: false},
 	}
 	state := &State{
-		Brews: []string{"git", "wget"},
+		Brews:  []string{"git", "wget"},
+		Leaves: []string{"git", "wget"},
 	}
 
 	p := Compute(cfg, state)
@@ -73,6 +75,22 @@ func TestCompute_NoRemovalsWhenDisabled(t *testing.T) {
 	if len(p.TapsToRemove) != 0 {
 		t.Errorf("expected no tap removals, got %v", p.TapsToRemove)
 	}
+}
+
+func TestCompute_DependencyOnlyNotRemoved(t *testing.T) {
+	cfg := &config.Config{
+		Brews:   []string{"git"},
+		Cleanup: config.Cleanup{RemoveUnlisted: true},
+	}
+	state := &State{
+		Brews:  []string{"git", "libssh2", "wget"},
+		Leaves: []string{"git", "wget"},
+	}
+
+	p := Compute(cfg, state)
+
+	// libssh2 is installed but not a leaf — should NOT be removed
+	assertSlice(t, "BrewsToRemove", p.BrewsToRemove, []string{"wget"})
 }
 
 func TestCompute_EmptyPlan(t *testing.T) {
