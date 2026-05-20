@@ -27,6 +27,7 @@ func init() {
 	rootCmd.AddCommand(cli.NewPlanCmd(&cfgFile))
 	rootCmd.AddCommand(cli.NewApplyCmd(&cfgFile))
 	rootCmd.AddCommand(cli.NewUpgradeCmd(&cfgFile))
+	rootCmd.AddCommand(cli.NewInitCmd())
 }
 
 func main() {

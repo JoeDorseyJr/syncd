@@ -578,6 +578,105 @@ func TestUpgrade_WorksWithoutConfig(t *testing.T) {
 	}
 }
 
+func TestInit_ProducesValidYAML(t *testing.T) {
+	stateDir := setupFakeStateWithLeaves(t,
+		[]string{"homebrew/core"},
+		[]string{"git", "wget", "libssh2"},
+		[]string{"git", "wget"},
+		[]string{"firefox"},
+	)
+
+	out, _ := runSyncdExpect(t, stateDir, 0, "init")
+
+	// Should be valid YAML that parses
+	if !strings.Contains(out, "brews:") {
+		t.Errorf("expected 'brews:' in output, got: %s", out)
+	}
+	if !strings.Contains(out, "git") {
+		t.Errorf("expected 'git' in output, got: %s", out)
+	}
+}
+
+func TestInit_OnlyLeavesInBrews(t *testing.T) {
+	stateDir := setupFakeStateWithLeaves(t,
+		nil,
+		[]string{"git", "libssh2"},
+		[]string{"git"},
+		nil,
+	)
+
+	out, _ := runSyncdExpect(t, stateDir, 0, "init")
+
+	if strings.Contains(out, "libssh2") {
+		t.Errorf("dependency-only 'libssh2' should not be in init output, got: %s", out)
+	}
+	if !strings.Contains(out, "git") {
+		t.Errorf("expected 'git' in output, got: %s", out)
+	}
+}
+
+func TestInit_IncludesCasks(t *testing.T) {
+	stateDir := setupFakeState(t, nil, nil, []string{"firefox", "iterm2"})
+
+	out, _ := runSyncdExpect(t, stateDir, 0, "init")
+
+	if !strings.Contains(out, "firefox") || !strings.Contains(out, "iterm2") {
+		t.Errorf("expected casks in output, got: %s", out)
+	}
+}
+
+func TestInit_IncludesTaps(t *testing.T) {
+	stateDir := setupFakeState(t, []string{"homebrew/core", "hashicorp/tap"}, nil, nil)
+
+	out, _ := runSyncdExpect(t, stateDir, 0, "init")
+
+	if !strings.Contains(out, "homebrew/core") || !strings.Contains(out, "hashicorp/tap") {
+		t.Errorf("expected taps in output, got: %s", out)
+	}
+}
+
+func TestInit_IncludesPinAndCleanup(t *testing.T) {
+	stateDir := setupFakeState(t, nil, []string{"git"}, nil)
+
+	out, _ := runSyncdExpect(t, stateDir, 0, "init")
+
+	if !strings.Contains(out, "pin:") {
+		t.Errorf("expected 'pin:' in output, got: %s", out)
+	}
+	if !strings.Contains(out, "cleanup:") {
+		t.Errorf("expected 'cleanup:' in output, got: %s", out)
+	}
+}
+
+func TestInit_OutputCreatesFile(t *testing.T) {
+	stateDir := setupFakeState(t, nil, []string{"git"}, nil)
+	outFile := filepath.Join(t.TempDir(), "config.yaml")
+
+	runSyncdExpect(t, stateDir, 0, "init", "--output", outFile)
+
+	data, err := os.ReadFile(outFile)
+	if err != nil {
+		t.Fatalf("expected file to exist: %v", err)
+	}
+	if !strings.Contains(string(data), "git") {
+		t.Errorf("expected 'git' in file, got: %s", string(data))
+	}
+}
+
+func TestInit_RefusesOverwriteWithoutForce(t *testing.T) {
+	stateDir := setupFakeState(t, nil, []string{"git"}, nil)
+	outFile := filepath.Join(t.TempDir(), "config.yaml")
+	os.WriteFile(outFile, []byte("existing"), 0644)
+
+	out, _ := runSyncdExpect(t, stateDir, 1, "init", "--output", outFile)
+	if !strings.Contains(out, "already exists") {
+		t.Errorf("expected 'already exists' error, got: %s", out)
+	}
+
+	// With --force, should succeed
+	runSyncdExpect(t, stateDir, 0, "init", "--output", outFile, "--force")
+}
+
 // Helpers
 
 func writeConfig(t *testing.T, content string) string {
