@@ -405,6 +405,31 @@ brews:
 	}
 }
 
+func TestPlan_PipedOutputNoANSI(t *testing.T) {
+	stateDir := setupFakeState(t, nil, nil, nil)
+	cfg := writeConfig(t, `
+brews:
+  - newpkg
+`)
+	// runSyncdExpect captures output via pipe, so TTY detection should suppress color
+	out, _ := runSyncdExpect(t, stateDir, 2, "plan", "--config", cfg)
+	if strings.Contains(out, "\033[") {
+		t.Errorf("expected no ANSI escape codes in piped output, got: %q", out)
+	}
+}
+
+func TestPlan_NoColorFlagSuppressesANSI(t *testing.T) {
+	stateDir := setupFakeState(t, nil, nil, nil)
+	cfg := writeConfig(t, `
+brews:
+  - newpkg
+`)
+	out, _ := runSyncdExpect(t, stateDir, 2, "plan", "--no-color", "--config", cfg)
+	if strings.Contains(out, "\033[") {
+		t.Errorf("expected no ANSI escape codes with --no-color, got: %q", out)
+	}
+}
+
 func TestApply_FailureExitOne(t *testing.T) {
 	stateDir := setupFakeState(t, nil, nil, nil)
 	cfg := writeConfig(t, `

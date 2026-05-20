@@ -59,17 +59,17 @@ func NewPlanCmd(cfgFile *string) *cobra.Command {
 }
 
 func printPlan(p *plan.Plan) {
-	printSection("Taps to add", p.TapsToAdd, "+")
-	printSection("Taps to remove", p.TapsToRemove, "-")
-	printSection("Brews to install", p.BrewsToInstall, "+")
-	printSection("Brews to remove", p.BrewsToRemove, "-")
-	printSection("Casks to install", p.CasksToInstall, "+")
-	printSection("Casks to remove", p.CasksToRemove, "-")
+	printSection("Taps to add", p.TapsToAdd, Green+"+"+Reset)
+	printSection("Taps to remove", p.TapsToRemove, Red+"-"+Reset)
+	printSection("Brews to install", p.BrewsToInstall, Green+"+"+Reset)
+	printSection("Brews to remove", p.BrewsToRemove, Red+"-"+Reset)
+	printSection("Casks to install", p.CasksToInstall, Green+"+"+Reset)
+	printSection("Casks to remove", p.CasksToRemove, Red+"-"+Reset)
 	if p.Autoremove {
-		fmt.Println("  ~ brew autoremove")
+		fmt.Printf("  %s~%s brew autoremove\n", Yellow, Reset)
 	}
 	if p.ClearCache {
-		fmt.Println("  ~ brew cleanup")
+		fmt.Printf("  %s~%s brew cleanup\n", Yellow, Reset)
 	}
 }
 

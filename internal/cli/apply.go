@@ -63,7 +63,7 @@ func NewApplyCmd(cfgFile *string) *cobra.Command {
 
 			fmt.Println("\nApplying changes...")
 			results := brew.Execute(runner, p)
-			fmt.Print(brew.FormatResults(results))
+			fmt.Print(brew.FormatResults(results, Green, Red, Reset))
 
 			if brew.HasErrors(results) {
 				os.Exit(1)

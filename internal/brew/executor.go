@@ -68,20 +68,20 @@ func HasErrors(results []Result) bool {
 }
 
 // FormatResults returns a human-readable summary of execution results.
-func FormatResults(results []Result) string {
+func FormatResults(results []Result, green, red, reset string) string {
 	var s string
 	for _, r := range results {
 		if r.Err != nil {
 			if r.Package != "" {
-				s += fmt.Sprintf("  ✗ %s %s: %v\n", r.Action, r.Package, r.Err)
+				s += fmt.Sprintf("  %s✗%s %s %s: %v\n", red, reset, r.Action, r.Package, r.Err)
 			} else {
-				s += fmt.Sprintf("  ✗ %s: %v\n", r.Action, r.Err)
+				s += fmt.Sprintf("  %s✗%s %s: %v\n", red, reset, r.Action, r.Err)
 			}
 		} else {
 			if r.Package != "" {
-				s += fmt.Sprintf("  ✓ %s %s\n", r.Action, r.Package)
+				s += fmt.Sprintf("  %s✓%s %s %s\n", green, reset, r.Action, r.Package)
 			} else {
-				s += fmt.Sprintf("  ✓ %s\n", r.Action)
+				s += fmt.Sprintf("  %s✓%s %s\n", green, reset, r.Action)
 			}
 		}
 	}
