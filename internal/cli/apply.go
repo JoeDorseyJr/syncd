@@ -9,7 +9,9 @@ import (
 
 	"github.com/joedorseyjr/syncd/internal/brew"
 	"github.com/joedorseyjr/syncd/internal/config"
+	"github.com/joedorseyjr/syncd/internal/defaults"
 	"github.com/joedorseyjr/syncd/internal/plan"
+	"github.com/joedorseyjr/syncd/internal/runner"
 	"github.com/spf13/cobra"
 )
 
@@ -29,13 +31,13 @@ func NewApplyCmd(cfgFile *string) *cobra.Command {
 				return err
 			}
 
-			runner := &brew.ExecRunner{}
-			state, err := brew.GetState(runner)
+			r := &runner.ExecRunner{}
+			state, err := brew.GetState(r)
 			if err != nil {
 				return fmt.Errorf("querying Homebrew state: %w", err)
 			}
 
-			leaves, err := brew.GetLeaves(runner)
+			leaves, err := brew.GetLeaves(r)
 			if err != nil {
 				return fmt.Errorf("querying Homebrew leaves: %w", err)
 			}
@@ -47,12 +49,21 @@ func NewApplyCmd(cfgFile *string) *cobra.Command {
 				Casks:  state.Casks,
 			})
 
-			if p.IsEmpty() {
+			var drifted []defaults.DriftEntry
+			if len(cfg.Defaults) > 0 {
+				drifted, err = defaults.ComputeDrift(r, cfg.Defaults)
+				if err != nil {
+					return fmt.Errorf("computing defaults drift: %w", err)
+				}
+			}
+
+			if p.IsEmpty() && len(drifted) == 0 {
 				fmt.Println("Already in sync. No changes needed.")
 				return nil
 			}
 
 			printPlan(p)
+			printDefaultsDrift(drifted)
 
 			if !yes {
 				if !confirm(os.Stdin) {
@@ -61,11 +72,38 @@ func NewApplyCmd(cfgFile *string) *cobra.Command {
 				}
 			}
 
-			fmt.Println("\nApplying changes...")
-			results := brew.Execute(runner, p)
-			fmt.Print(brew.FormatResults(results, Green, Red, Reset))
+			hasFailure := false
 
-			if brew.HasErrors(results) {
+			if !p.IsEmpty() {
+				fmt.Println("\nApplying changes...")
+				results := brew.Execute(r, p)
+				fmt.Print(brew.FormatResults(results, Green, Red, Reset))
+				if brew.HasErrors(results) {
+					hasFailure = true
+				}
+			}
+
+			if len(drifted) > 0 {
+				fmt.Println("\nWriting defaults...")
+				writeResults, killResults := defaults.WriteDrifted(r, drifted)
+				for _, wr := range writeResults {
+					if wr.Err != nil {
+						fmt.Printf("  %s✗%s %s %s: %v\n", Red, Reset, wr.Domain, wr.Key, wr.Err)
+						hasFailure = true
+					} else {
+						fmt.Printf("  %s✓%s %s %s\n", Green, Reset, wr.Domain, wr.Key)
+					}
+				}
+				for _, kr := range killResults {
+					if kr.Err != nil {
+						fmt.Printf("  %s~%s killall %s (not running)\n", Yellow, Reset, kr.App)
+					} else {
+						fmt.Printf("  %s✓%s killall %s\n", Green, Reset, kr.App)
+					}
+				}
+			}
+
+			if hasFailure {
 				os.Exit(1)
 			}
 			return nil

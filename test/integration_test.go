@@ -3,6 +3,7 @@
 package test
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -944,5 +945,243 @@ defaults:
 	}
 	if string(data) != "64" {
 		t.Errorf("plan should not modify defaults state, got: %s", string(data))
+	}
+}
+
+func TestApply_WritesDriftedDefaults(t *testing.T) {
+	brewState := setupFakeState(t, nil, []string{"git"}, nil)
+	defaultsState := setupFakeDefaultsState(t, map[string]string{
+		"com.apple.dock__tilesize": "64",
+	})
+	cfg := writeConfig(t, `
+brews:
+  - git
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+    value: 48
+`)
+	out, _ := runSyncdWithDefaults(t, brewState, defaultsState, 0, "apply", "--yes", "--config", cfg)
+	if !strings.Contains(out, "com.apple.dock tilesize") {
+		t.Errorf("expected write result for com.apple.dock tilesize, got: %s", out)
+	}
+
+	// Verify value was written
+	data, err := os.ReadFile(filepath.Join(defaultsState, "com.apple.dock__tilesize"))
+	if err != nil {
+		t.Fatalf("expected state file: %v", err)
+	}
+	if string(data) != "48" {
+		t.Errorf("expected value 48, got: %s", string(data))
+	}
+}
+
+func TestApply_KillsAffectedApps(t *testing.T) {
+	brewState := setupFakeState(t, nil, []string{"git"}, nil)
+	defaultsState := setupFakeDefaultsState(t, map[string]string{
+		"com.apple.dock__tilesize": "64",
+	})
+
+	// Create a fake killall that records calls
+	killLog := filepath.Join(t.TempDir(), "kill.log")
+	fakeKillall := filepath.Join(t.TempDir(), "killall")
+	script := fmt.Sprintf("#!/bin/bash\necho \"$1\" >> %s\n", killLog)
+	os.WriteFile(fakeKillall, []byte(script), 0755)
+
+	cfg := writeConfig(t, `
+brews:
+  - git
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+    value: 48
+    kill:
+      - Dock
+`)
+	cmd := exec.Command(binary, "apply", "--yes", "--config", cfg)
+	cmd.Env = append(os.Environ(),
+		"PATH="+filepath.Dir(fakeKillall)+":"+fakeDir+":"+os.Getenv("PATH"),
+		"FAKE_BREW_STATE="+brewState,
+		"FAKE_DEFAULTS_STATE="+defaultsState,
+	)
+	out, err := cmd.CombinedOutput()
+	code := 0
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			code = exitErr.ExitCode()
+		}
+	}
+	if code != 0 {
+		t.Errorf("expected exit 0, got %d\noutput: %s", code, string(out))
+	}
+
+	// Verify killall was called
+	data, err := os.ReadFile(killLog)
+	if err != nil {
+		t.Fatalf("expected kill log: %v", err)
+	}
+	if !strings.Contains(string(data), "Dock") {
+		t.Errorf("expected killall Dock, got: %s", string(data))
+	}
+}
+
+func TestApply_DefaultsDeduplicatesKills(t *testing.T) {
+	brewState := setupFakeState(t, nil, []string{"git"}, nil)
+	defaultsState := setupFakeDefaultsState(t, map[string]string{
+		"com.apple.dock__tilesize": "64",
+		"com.apple.dock__autohide": "0",
+	})
+
+	killLog := filepath.Join(t.TempDir(), "kill.log")
+	fakeKillall := filepath.Join(t.TempDir(), "killall")
+	script := fmt.Sprintf("#!/bin/bash\necho \"$1\" >> %s\n", killLog)
+	os.WriteFile(fakeKillall, []byte(script), 0755)
+
+	cfg := writeConfig(t, `
+brews:
+  - git
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+    value: 48
+    kill:
+      - Dock
+  - domain: com.apple.dock
+    key: autohide
+    type: bool
+    value: true
+    kill:
+      - Dock
+`)
+	cmd := exec.Command(binary, "apply", "--yes", "--config", cfg)
+	cmd.Env = append(os.Environ(),
+		"PATH="+filepath.Dir(fakeKillall)+":"+fakeDir+":"+os.Getenv("PATH"),
+		"FAKE_BREW_STATE="+brewState,
+		"FAKE_DEFAULTS_STATE="+defaultsState,
+	)
+	out, err := cmd.CombinedOutput()
+	code := 0
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			code = exitErr.ExitCode()
+		}
+	}
+	if code != 0 {
+		t.Errorf("expected exit 0, got %d\noutput: %s", code, string(out))
+	}
+
+	// Verify killall was called only once for Dock
+	data, err := os.ReadFile(killLog)
+	if err != nil {
+		t.Fatalf("expected kill log: %v", err)
+	}
+	count := strings.Count(string(data), "Dock")
+	if count != 1 {
+		t.Errorf("expected killall Dock called once, got %d times", count)
+	}
+}
+
+func TestApply_DefaultsContinuesOnWriteFailure(t *testing.T) {
+	brewState := setupFakeState(t, nil, []string{"git"}, nil)
+	// Create a fake defaults that fails on a specific domain
+	defaultsState := t.TempDir()
+	// Set up one readable value and leave the other to be written
+	// We'll use a custom fake defaults that fails writes to "bad.domain"
+	fakeDefaultsDir := t.TempDir()
+	fakeDefaultsScript := filepath.Join(fakeDefaultsDir, "defaults")
+	script := fmt.Sprintf(`#!/bin/bash
+STATE_DIR="%s"
+mkdir -p "$STATE_DIR"
+case "$1" in
+  read-type)
+    FILE="$STATE_DIR/${2}__${3}.type"
+    if [ ! -f "$FILE" ]; then
+      echo "not found" >&2; exit 1
+    fi
+    cat "$FILE"
+    ;;
+  read)
+    FILE="$STATE_DIR/${2}__${3}"
+    if [ ! -f "$FILE" ]; then
+      echo "not found" >&2; exit 1
+    fi
+    cat "$FILE"
+    ;;
+  write)
+    if [[ "$2" == "bad.domain" ]]; then
+      echo "write failed" >&2; exit 1
+    fi
+    echo -n "$5" > "$STATE_DIR/${2}__${3}"
+    echo -n "${4#-}" > "$STATE_DIR/${2}__${3}.type"
+    ;;
+esac
+`, defaultsState)
+	os.WriteFile(fakeDefaultsScript, []byte(script), 0755)
+
+	cfg := writeConfig(t, `
+brews:
+  - git
+defaults:
+  - domain: bad.domain
+    key: badkey
+    type: int
+    value: 1
+  - domain: good.domain
+    key: goodkey
+    type: int
+    value: 2
+`)
+	cmd := exec.Command(binary, "apply", "--yes", "--config", cfg)
+	cmd.Env = append(os.Environ(),
+		"PATH="+fakeDefaultsDir+":"+fakeDir+":"+os.Getenv("PATH"),
+		"FAKE_BREW_STATE="+brewState,
+		"FAKE_DEFAULTS_STATE="+defaultsState,
+	)
+	out, err := cmd.CombinedOutput()
+	code := 0
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			code = exitErr.ExitCode()
+		}
+	}
+	// Should exit 1 due to write failure
+	if code != 1 {
+		t.Errorf("expected exit 1, got %d\noutput: %s", code, string(out))
+	}
+
+	// Good entry should still be written
+	data, err := os.ReadFile(filepath.Join(defaultsState, "good.domain__goodkey"))
+	if err != nil {
+		t.Fatalf("good entry should be written: %v", err)
+	}
+	if string(data) != "2" {
+		t.Errorf("expected value 2, got: %s", string(data))
+	}
+}
+
+func TestApply_DefaultsIdempotent(t *testing.T) {
+	brewState := setupFakeState(t, nil, []string{"git"}, nil)
+	defaultsState := setupFakeDefaultsState(t, map[string]string{
+		"com.apple.dock__tilesize": "64",
+	})
+	cfg := writeConfig(t, `
+brews:
+  - git
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+    value: 48
+`)
+	// First apply writes the value
+	runSyncdWithDefaults(t, brewState, defaultsState, 0, "apply", "--yes", "--config", cfg)
+
+	// Second plan should show no drift
+	out, _ := runSyncdWithDefaults(t, brewState, defaultsState, 0, "plan", "--config", cfg)
+	if strings.Contains(out, "tilesize") {
+		t.Errorf("expected no drift after apply, got: %s", out)
 	}
 }

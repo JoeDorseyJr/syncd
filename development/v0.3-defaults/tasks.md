@@ -128,7 +128,7 @@
 ### 4.1 Executor: WriteDrifted
 > REQ-081, REQ-082, REQ-083, REQ-084, REQ-085, REQ-086, REQ-104, REQ-105, REQ-106 | Design: Defaults Executor
 
-- [ ] Create `internal/defaults/executor.go`
+- [x] Create `internal/defaults/executor.go`
   - `WriteResult` struct: Domain, Key, Err
   - `KillResult` struct: App, Err
   - `WriteDrifted(runner, drifted) ([]WriteResult, []KillResult)`
@@ -136,7 +136,7 @@
   - Bool value mapping: true → `TRUE`, false → `FALSE`
   - Collect kill apps from successful writes, deduplicate
   - Run `killall <app>` for each unique app (non-fatal)
-- [ ] Add unit tests in `internal/defaults/executor_test.go`
+- [x] Add unit tests in `internal/defaults/executor_test.go`
   - Test: correct command args for int write
   - Test: correct command args for bool write (TRUE/FALSE)
   - Test: correct command args for string write
@@ -145,30 +145,30 @@
   - Test: killall failure does not mark apply as failed
   - Test: write failure continues to next entry
   - Test: no killall when no entries drifted
-- [ ] Verify: `go test ./internal/defaults/...` passes
+- [x] Verify: `go test ./internal/defaults/...` passes
 
 ### 4.2 Apply command: write defaults
 > REQ-081, REQ-087, REQ-088, REQ-089, REQ-090 | Design: CLI Changes — Apply
 
-- [ ] Update `NewApplyCmd` in `internal/cli/apply.go`
+- [x] Update `NewApplyCmd` in `internal/cli/apply.go`
   - After brew execution, compute defaults drift
   - Include defaults drift in plan display (before confirmation prompt)
   - Write drifted defaults via `WriteDrifted`
   - Print write results (✓/✗ per entry)
   - Print kill results
   - Exit 1 if any write failed
-- [ ] Verify: `syncd apply --yes` with drifted defaults → writes them
-- [ ] Verify: `syncd apply` without `--yes` → shows drift before prompt
+- [x] Verify: `syncd apply --yes` with drifted defaults → writes them
+- [x] Verify: `syncd apply` without `--yes` → shows drift before prompt
 
 ### 4.3 Integration tests: apply with defaults
 > REQ-081, REQ-083, REQ-084, REQ-086, REQ-090 | Design: Integration Tests
 
-- [ ] Add integration test: apply writes drifted defaults
-- [ ] Add integration test: apply kills affected apps
-- [ ] Add integration test: apply deduplicates kills
-- [ ] Add integration test: apply continues on write failure
-- [ ] Add integration test: apply idempotent (second run = no drift)
-- [ ] Verify: `make integration-test` passes
+- [x] Add integration test: apply writes drifted defaults
+- [x] Add integration test: apply kills affected apps
+- [x] Add integration test: apply deduplicates kills
+- [x] Add integration test: apply continues on write failure
+- [x] Add integration test: apply idempotent (second run = no drift)
+- [x] Verify: `make integration-test` passes
 
 **Estimate:** ~2 hours
 
