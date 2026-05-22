@@ -147,8 +147,10 @@ func (d *DownloadDisplay) Start() func() {
 		if d.rendered {
 			fmt.Fprintf(os.Stdout, "\033[%dA", len(d.slots))
 			for range d.slots {
-				fmt.Fprintf(os.Stdout, "\r\033[K\n")
+				fmt.Fprintf(os.Stdout, "\033[K\n")
 			}
+			// Move back up to remove the blank lines
+			fmt.Fprintf(os.Stdout, "\033[%dA", len(d.slots))
 		}
 	}
 }
