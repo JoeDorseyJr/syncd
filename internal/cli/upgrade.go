@@ -9,6 +9,7 @@ import (
 	"github.com/joedorseyjr/syncd/internal/brew"
 	"github.com/joedorseyjr/syncd/internal/config"
 	"github.com/joedorseyjr/syncd/internal/download"
+	"github.com/joedorseyjr/syncd/internal/progress"
 	"github.com/joedorseyjr/syncd/internal/runner"
 	"github.com/spf13/cobra"
 )
@@ -137,23 +138,27 @@ func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 			total := len(brewNames) + len(caskNames)
 
 			for i, name := range brewNames {
-				fmt.Printf("  [%d/%d] %s\n", i+1, total, name)
-				_, err := r.RunMutate("brew", "upgrade", name)
+				spinStop := startSpinner(fmt.Sprintf("  [%d/%d] %s", i+1, total, name))
+				out, err := r.RunSilent("brew", "upgrade", name)
+				spinStop()
 				res := brew.Result{Action: "upgrade", Package: name, Err: err}
 				results = append(results, res)
 				if err != nil {
-					fmt.Printf("  %s✗%s %s\n", Red, Reset, name)
+					errMsg := progress.ExtractError(out)
+					fmt.Printf("  %s✗%s %s: %s\n", Red, Reset, name, errMsg)
 				} else {
 					fmt.Printf("  %s✓%s %s\n", Green, Reset, name)
 				}
 			}
 			for i, name := range caskNames {
-				fmt.Printf("  [%d/%d] %s\n", len(brewNames)+i+1, total, name)
-				_, err := r.RunMutate("brew", "upgrade", "--cask", name)
+				spinStop := startSpinner(fmt.Sprintf("  [%d/%d] %s", len(brewNames)+i+1, total, name))
+				out, err := r.RunSilent("brew", "upgrade", "--cask", name)
+				spinStop()
 				res := brew.Result{Action: "upgrade-cask", Package: name, Err: err}
 				results = append(results, res)
 				if err != nil {
-					fmt.Printf("  %s✗%s %s\n", Red, Reset, name)
+					errMsg := progress.ExtractError(out)
+					fmt.Printf("  %s✗%s %s: %s\n", Red, Reset, name, errMsg)
 				} else {
 					fmt.Printf("  %s✓%s %s\n", Green, Reset, name)
 				}
@@ -240,6 +245,29 @@ func toSet(items []string) map[string]struct{} {
 		s[item] = struct{}{}
 	}
 	return s
+}
+
+
+var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+
+func startSpinner(prefix string) func() {
+	done := make(chan struct{})
+	go func() {
+		i := 0
+		for {
+			select {
+			case <-done:
+				return
+			case <-time.After(100 * time.Millisecond):
+				fmt.Printf("\r%s %s", prefix, spinnerFrames[i%len(spinnerFrames)])
+				i++
+			}
+		}
+	}()
+	return func() {
+		close(done)
+		fmt.Print("\r\033[K") // clear the spinner line
+	}
 }
 
 func filterPinnedPkgs(pkgs []brew.OutdatedPkg, pinned map[string]struct{}) []brew.OutdatedPkg {

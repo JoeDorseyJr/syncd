@@ -11,6 +11,7 @@ import (
 type CommandRunner interface {
 	Run(name string, args ...string) ([]byte, error)
 	RunMutate(name string, args ...string) ([]byte, error)
+	RunSilent(name string, args ...string) ([]byte, error)
 }
 
 // Verbose controls whether mutating commands stream output to stdout/stderr.
@@ -47,6 +48,22 @@ func (r *ExecRunner) RunMutate(name string, args ...string) ([]byte, error) {
 		}
 	}
 	return nil, nil
+}
+
+// RunSilent captures stdout/stderr but connects stdin for password prompts.
+func (r *ExecRunner) RunSilent(name string, args ...string) ([]byte, error) {
+	cmd := exec.Command(name, args...)
+	cmd.Env = brewEnv()
+	cmd.Stdin = os.Stdin
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return out, &RunError{
+			Cmd:    name + " " + strings.Join(args, " "),
+			Output: strings.TrimSpace(string(out)),
+			Err:    err,
+		}
+	}
+	return out, nil
 }
 
 // brewEnv returns the current environment with HOMEBREW_NO_AUTO_UPDATE=1
@@ -104,5 +121,9 @@ func (m *MockRunner) Run(name string, args ...string) ([]byte, error) {
 }
 
 func (m *MockRunner) RunMutate(name string, args ...string) ([]byte, error) {
+	return m.Run(name, args...)
+}
+
+func (m *MockRunner) RunSilent(name string, args ...string) ([]byte, error) {
 	return m.Run(name, args...)
 }
