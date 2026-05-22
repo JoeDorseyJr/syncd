@@ -6,6 +6,7 @@ import (
 
 	"github.com/joedorseyjr/syncd/internal/brew"
 	"github.com/joedorseyjr/syncd/internal/config"
+	"github.com/joedorseyjr/syncd/internal/runner"
 	"github.com/spf13/cobra"
 )
 
@@ -19,6 +20,12 @@ func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 			if err := brew.CheckAvailable(); err != nil {
 				return err
 			}
+
+			r := &runner.ExecRunner{}
+
+			// Update tap metadata before checking for outdated packages
+			fmt.Println("Updating Homebrew...")
+			r.RunMutate("brew", "update")
 
 			// Load config for pin list (optional)
 			var pinned map[string]struct{}
@@ -36,13 +43,11 @@ func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 				}
 			}
 
-			runner := &brew.ExecRunner{}
-
-			outdatedBrews, err := brew.GetOutdated(runner)
+			outdatedBrews, err := brew.GetOutdated(r)
 			if err != nil {
 				return fmt.Errorf("querying outdated formulae: %w", err)
 			}
-			outdatedCasks, err := brew.GetOutdatedCasks(runner)
+			outdatedCasks, err := brew.GetOutdatedCasks(r)
 			if err != nil {
 				return fmt.Errorf("querying outdated casks: %w", err)
 			}
@@ -67,7 +72,7 @@ func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 			}
 
 			fmt.Println("\nUpgrading...")
-			results := brew.Upgrade(runner, brews, casks)
+			results := brew.Upgrade(r, brews, casks)
 			fmt.Print(brew.FormatResults(results, Green, Red, Reset))
 
 			if brew.HasErrors(results) {
