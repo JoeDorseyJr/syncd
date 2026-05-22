@@ -179,15 +179,15 @@
 ### 5.1 Well-known domain map
 > REQ-094, REQ-095 | Design: Well-Known Domain Map
 
-- [ ] Create `internal/defaults/apps.go`
+- [x] Create `internal/defaults/apps.go`
   - `KnownApps` map: domain → app name
   - Include: com.apple.dock → Dock, com.apple.finder → Finder, com.apple.systemuiserver → SystemUIServer, NSGlobalDomain → ""
-- [ ] Verify: compiles
+- [x] Verify: compiles
 
 ### 5.2 Init command: --defaults flag
 > REQ-091, REQ-092, REQ-093, REQ-094, REQ-095, REQ-096, REQ-097 | Design: CLI Changes — Init
 
-- [ ] Update `NewInitCmd` in `internal/cli/init.go`
+- [x] Update `NewInitCmd` in `internal/cli/init.go`
   - Add `--defaults` flag (string, comma-separated `domain:key` pairs)
   - Parse pairs, call `ReadType` and `ReadValue` for each
   - Skip unreadable entries with warning to stderr
@@ -195,16 +195,16 @@
   - Omit kill field for unknown domains
   - Add entries to generated config's `Defaults` field
   - Works alongside existing brew snapshot
-- [ ] Verify: `syncd init --defaults "com.apple.dock:tilesize"` outputs defaults section
+- [x] Verify: `syncd init --defaults "com.apple.dock:tilesize"` outputs defaults section
 
 ### 5.3 Integration tests: init with defaults
 > REQ-091, REQ-094, REQ-096, REQ-097 | Design: Integration Tests
 
-- [ ] Add integration test: init snapshots specified defaults
-- [ ] Add integration test: init infers kill for known domains
-- [ ] Add integration test: init skips unreadable with warning
-- [ ] Add integration test: init combined with brew snapshot
-- [ ] Verify: `make integration-test` passes
+- [x] Add integration test: init snapshots specified defaults
+- [x] Add integration test: init infers kill for known domains
+- [x] Add integration test: init skips unreadable with warning
+- [x] Add integration test: init combined with brew snapshot
+- [x] Verify: `make integration-test` passes
 
 **Estimate:** ~1.5 hours
 

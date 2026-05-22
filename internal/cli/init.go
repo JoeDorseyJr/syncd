@@ -3,9 +3,12 @@ package cli
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/joedorseyjr/syncd/internal/brew"
 	"github.com/joedorseyjr/syncd/internal/config"
+	"github.com/joedorseyjr/syncd/internal/defaults"
+	"github.com/joedorseyjr/syncd/internal/runner"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -13,6 +16,7 @@ import (
 func NewInitCmd() *cobra.Command {
 	var output string
 	var force bool
+	var defaultsFlag string
 
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -22,12 +26,12 @@ func NewInitCmd() *cobra.Command {
 				return err
 			}
 
-			runner := &brew.ExecRunner{}
-			state, err := brew.GetState(runner)
+			r := &runner.ExecRunner{}
+			state, err := brew.GetState(r)
 			if err != nil {
 				return fmt.Errorf("querying Homebrew state: %w", err)
 			}
-			leaves, err := brew.GetLeaves(runner)
+			leaves, err := brew.GetLeaves(r)
 			if err != nil {
 				return fmt.Errorf("querying Homebrew leaves: %w", err)
 			}
@@ -42,6 +46,10 @@ func NewInitCmd() *cobra.Command {
 					ClearCache:     false,
 					Autoremove:     true,
 				},
+			}
+
+			if defaultsFlag != "" {
+				cfg.Defaults = snapshotDefaults(r, defaultsFlag)
 			}
 
 			data, err := yaml.Marshal(cfg)
@@ -70,5 +78,83 @@ func NewInitCmd() *cobra.Command {
 
 	cmd.Flags().StringVarP(&output, "output", "o", "", "write config to file instead of stdout")
 	cmd.Flags().BoolVarP(&force, "force", "f", false, "overwrite existing file")
+	cmd.Flags().StringVar(&defaultsFlag, "defaults", "", "comma-separated domain:key pairs to snapshot")
 	return cmd
+}
+
+func snapshotDefaults(r runner.CommandRunner, flag string) []config.DefaultEntry {
+	var entries []config.DefaultEntry
+	pairs := strings.Split(flag, ",")
+	for _, pair := range pairs {
+		pair = strings.TrimSpace(pair)
+		if pair == "" {
+			continue
+		}
+		idx := strings.Index(pair, ":")
+		if idx < 0 {
+			fmt.Fprintf(os.Stderr, "Warning: invalid pair %q (expected domain:key)\n", pair)
+			continue
+		}
+		domain := pair[:idx]
+		key := pair[idx+1:]
+
+		typeStr, ok, err := defaults.ReadType(r, domain, key)
+		if err != nil || !ok {
+			fmt.Fprintf(os.Stderr, "Warning: cannot read %s:%s, skipping\n", domain, key)
+			continue
+		}
+
+		valStr, ok, err := defaults.ReadValue(r, domain, key)
+		if err != nil || !ok {
+			fmt.Fprintf(os.Stderr, "Warning: cannot read %s:%s, skipping\n", domain, key)
+			continue
+		}
+
+		cfgType := mapType(typeStr)
+		value := parseValue(cfgType, valStr)
+
+		entry := config.DefaultEntry{
+			Domain: domain,
+			Key:    key,
+			Type:   cfgType,
+			Value:  value,
+		}
+
+		if app, known := defaults.KnownApps[domain]; known && app != "" {
+			entry.Kill = []string{app}
+		}
+
+		entries = append(entries, entry)
+	}
+	return entries
+}
+
+func mapType(raw string) string {
+	switch {
+	case strings.Contains(raw, "integer"):
+		return "int"
+	case strings.Contains(raw, "float"):
+		return "float"
+	case strings.Contains(raw, "boolean"):
+		return "bool"
+	default:
+		return "string"
+	}
+}
+
+func parseValue(cfgType, raw string) interface{} {
+	switch cfgType {
+	case "int":
+		var v int
+		fmt.Sscanf(raw, "%d", &v)
+		return v
+	case "float":
+		var v float64
+		fmt.Sscanf(raw, "%f", &v)
+		return v
+	case "bool":
+		return raw == "1" || strings.EqualFold(raw, "true")
+	default:
+		return raw
+	}
 }

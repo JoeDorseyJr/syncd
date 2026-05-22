@@ -1185,3 +1185,95 @@ defaults:
 		t.Errorf("expected no drift after apply, got: %s", out)
 	}
 }
+
+func TestInit_DefaultsSnapshotsSpecified(t *testing.T) {
+	brewState := setupFakeState(t, nil, []string{"git"}, nil)
+	defaultsState := setupFakeDefaultsState(t, map[string]string{
+		"com.apple.dock__tilesize":      "48",
+		"com.apple.dock__tilesize.type": "Type is integer",
+	})
+
+	out, _ := runSyncdWithDefaults(t, brewState, defaultsState, 0, "init", "--defaults", "com.apple.dock:tilesize")
+	if !strings.Contains(out, "defaults:") {
+		t.Errorf("expected 'defaults:' section in output, got: %s", out)
+	}
+	if !strings.Contains(out, "com.apple.dock") {
+		t.Errorf("expected domain in output, got: %s", out)
+	}
+	if !strings.Contains(out, "tilesize") {
+		t.Errorf("expected key in output, got: %s", out)
+	}
+	if !strings.Contains(out, "int") {
+		t.Errorf("expected type 'int' in output, got: %s", out)
+	}
+}
+
+func TestInit_DefaultsInfersKillForKnownDomains(t *testing.T) {
+	brewState := setupFakeState(t, nil, []string{"git"}, nil)
+	defaultsState := setupFakeDefaultsState(t, map[string]string{
+		"com.apple.dock__tilesize":      "48",
+		"com.apple.dock__tilesize.type": "Type is integer",
+	})
+
+	out, _ := runSyncdWithDefaults(t, brewState, defaultsState, 0, "init", "--defaults", "com.apple.dock:tilesize")
+	if !strings.Contains(out, "Dock") {
+		t.Errorf("expected kill inference 'Dock' for com.apple.dock, got: %s", out)
+	}
+}
+
+func TestInit_DefaultsSkipsUnreadableWithWarning(t *testing.T) {
+	brewState := setupFakeState(t, nil, []string{"git"}, nil)
+	defaultsState := setupFakeDefaultsState(t, nil) // no entries
+
+	// Run with stderr captured separately
+	cmd := exec.Command(binary, "init", "--defaults", "nonexistent.domain:badkey")
+	cmd.Env = append(os.Environ(),
+		"PATH="+fakeDir+":"+os.Getenv("PATH"),
+		"FAKE_BREW_STATE="+brewState,
+		"FAKE_DEFAULTS_STATE="+defaultsState,
+	)
+	out, err := cmd.CombinedOutput()
+	code := 0
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			code = exitErr.ExitCode()
+		}
+	}
+	if code != 0 {
+		t.Errorf("expected exit 0, got %d\noutput: %s", code, string(out))
+	}
+	if !strings.Contains(string(out), "Warning") || !strings.Contains(string(out), "nonexistent.domain") {
+		t.Errorf("expected warning about unreadable default, got: %s", string(out))
+	}
+	// Should not have a defaults section with the bad entry
+	if strings.Contains(string(out), "badkey") && !strings.Contains(string(out), "Warning") {
+		t.Errorf("unreadable entry should not appear in config output")
+	}
+}
+
+func TestInit_DefaultsCombinedWithBrewSnapshot(t *testing.T) {
+	brewState := setupFakeStateWithLeaves(t,
+		[]string{"homebrew/core"},
+		[]string{"git", "wget"},
+		[]string{"git", "wget"},
+		[]string{"firefox"},
+	)
+	defaultsState := setupFakeDefaultsState(t, map[string]string{
+		"com.apple.dock__tilesize":      "48",
+		"com.apple.dock__tilesize.type": "Type is integer",
+	})
+
+	out, _ := runSyncdWithDefaults(t, brewState, defaultsState, 0, "init", "--defaults", "com.apple.dock:tilesize")
+	if !strings.Contains(out, "brews:") {
+		t.Errorf("expected 'brews:' in output, got: %s", out)
+	}
+	if !strings.Contains(out, "git") {
+		t.Errorf("expected 'git' in brews, got: %s", out)
+	}
+	if !strings.Contains(out, "defaults:") {
+		t.Errorf("expected 'defaults:' in output, got: %s", out)
+	}
+	if !strings.Contains(out, "tilesize") {
+		t.Errorf("expected 'tilesize' in defaults, got: %s", out)
+	}
+}
