@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/joedorseyjr/syncd/internal/brew"
 	"github.com/joedorseyjr/syncd/internal/config"
@@ -31,9 +32,21 @@ func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 			r := &runner.ExecRunner{}
 
 			// Update tap metadata before checking for outdated packages
-			fmt.Printf("Updating Homebrew... ")
+			fmt.Printf("Updating Homebrew")
+			done := make(chan struct{})
+			go func() {
+				for {
+					select {
+					case <-done:
+						return
+					case <-time.After(500 * time.Millisecond):
+						fmt.Print(".")
+					}
+				}
+			}()
 			r.RunMutate("brew", "update")
-			fmt.Println("done")
+			close(done)
+			fmt.Println(" done")
 
 			// Load config for pin list (optional)
 			var pinned map[string]struct{}
