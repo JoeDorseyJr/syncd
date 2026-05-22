@@ -34,33 +34,19 @@ func (r *ExecRunner) Run(name string, args ...string) ([]byte, error) {
 }
 
 func (r *ExecRunner) RunMutate(name string, args ...string) ([]byte, error) {
-	if Verbose {
-		cmd := exec.Command(name, args...)
-		cmd.Env = brewEnv()
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		err := cmd.Run()
-		if err != nil {
-			return nil, &RunError{
-				Cmd: name + " " + strings.Join(args, " "),
-				Err: err,
-			}
-		}
-		return nil, nil
-	}
 	cmd := exec.Command(name, args...)
 	cmd.Env = brewEnv()
 	cmd.Stdin = os.Stdin
-	out, err := cmd.CombinedOutput()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
 	if err != nil {
-		return out, &RunError{
-			Cmd:    name + " " + strings.Join(args, " "),
-			Output: strings.TrimSpace(string(out)),
-			Err:    err,
+		return nil, &RunError{
+			Cmd: name + " " + strings.Join(args, " "),
+			Err: err,
 		}
 	}
-	return out, nil
+	return nil, nil
 }
 
 // brewEnv returns the current environment with HOMEBREW_NO_AUTO_UPDATE=1
