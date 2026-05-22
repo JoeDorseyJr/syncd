@@ -41,12 +41,15 @@
 **REQ-039:** `syncd upgrade` shall continue upgrading remaining packages if one fails.
 - Verification: Have one bad package + good ones, confirm good ones still upgraded.
 
+**REQ-066:** `syncd upgrade` shall work without a config file, upgrading all packages with no pin filtering.
+- Verification: Run `syncd upgrade --yes` with no config file present, confirm all outdated packages upgraded.
+
 ### Pin Configuration
 
 **REQ-040:** syncd shall support a `pin` section in config as a list of package names.
 - Verification: Unit test — parse config with `pin` section, confirm field populated.
 
-**REQ-041:** syncd shall reject unknown keys in the `pin` section (must be a string list).
+**REQ-041:** syncd shall reject non-list or non-string values in the `pin` field.
 - Verification: Put an object in `pin`, confirm parse error.
 
 **REQ-042:** `syncd upgrade` shall not upgrade any package whose name appears in `pin`.
@@ -75,6 +78,9 @@
 **REQ-049:** `syncd init` shall not overwrite an existing file without `--force`.
 - Verification: Run `syncd init --output` targeting an existing file, confirm error. Run with `--force`, confirm overwrite.
 
+**REQ-065:** `syncd init` shall emit a full config template including `pin: []` and `cleanup` section with defaults.
+- Verification: Run `syncd init`, confirm output includes `pin`, `cleanup.remove_unlisted`, `cleanup.clear_cache`, `cleanup.autoremove` fields.
+
 ### Dependency-Aware Removal
 
 **REQ-050:** `syncd plan` shall only list explicitly-installed formulae (leaves) as candidates for removal.
@@ -100,6 +106,9 @@
 **REQ-056:** syncd shall suppress color when stdout is not a terminal (piped/redirected).
 - Verification: Pipe `syncd plan` to a file, confirm no ANSI escape codes in output.
 
+**REQ-064:** syncd shall suppress color when `--no-color` flag is passed, regardless of TTY status.
+- Verification: Run `syncd plan --no-color` in a terminal, confirm no ANSI escape codes in output.
+
 ### Verbose Flag
 
 **REQ-057:** `--verbose` flag shall print the full brew command output for each operation during apply/upgrade.
@@ -114,10 +123,10 @@
 
 ### Global Install
 
-**REQ-059:** `make install` shall copy the binary to `/usr/local/bin/syncd`.
-- Verification: Run `make install`, confirm `which syncd` returns `/usr/local/bin/syncd`.
+**REQ-059:** `make install` shall copy the binary to `$(PREFIX)/bin/syncd` (default PREFIX=/usr/local).
+- Verification: Run `make install`, confirm `which syncd` returns `/usr/local/bin/syncd`. Run with `PREFIX=/tmp/test make install`, confirm binary at `/tmp/test/bin/syncd`.
 
-**REQ-060:** `make uninstall` shall remove `/usr/local/bin/syncd`.
+**REQ-060:** `make uninstall` shall remove `$(PREFIX)/bin/syncd`.
 - Verification: Run `make uninstall`, confirm `which syncd` returns nothing.
 
 ### State Query
@@ -138,10 +147,13 @@
 | Requirement | User Story | Command |
 |-------------|-----------|---------|
 | REQ-033–039 | US-005 | upgrade |
+| REQ-066 | US-005 | upgrade (no config) |
 | REQ-040–042 | US-006 | upgrade (pin) |
 | REQ-043–049 | US-007 | init |
+| REQ-065 | US-007 | init (full template) |
 | REQ-050–052 | US-008 | plan/apply (removal) |
 | REQ-053–056 | US-009 | plan/apply (output) |
+| REQ-064 | US-009 | plan/apply (--no-color) |
 | REQ-057–058 | US-009 | apply/upgrade (verbose) |
 | REQ-059–060 | US-010 | make install |
 | REQ-061–063 | US-005, US-008 | technical |

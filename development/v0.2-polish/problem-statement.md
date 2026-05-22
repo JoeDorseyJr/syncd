@@ -15,7 +15,7 @@ v0.1 works — packages install, removals happen, the system syncs. But daily us
 
 ## Desired Behavior
 
-- `syncd apply` with `upgrade: true` upgrades all non-pinned packages
+- `syncd upgrade` upgrades all non-pinned packages to latest
 - `pin` list in config prevents specific packages from being upgraded
 - `syncd init` snapshots current system into a config file
 - Removal only targets explicitly-installed packages (not auto-deps)
@@ -25,7 +25,7 @@ v0.1 works — packages install, removals happen, the system syncs. But daily us
 
 ## Success Outcomes
 
-1. `syncd apply` with upgrade enabled brings all packages to latest (except pinned)
+1. `syncd upgrade` brings all packages to latest (except pinned)
 2. `syncd init` produces a valid config from current state
 3. `remove_unlisted: true` doesn't remove dependency-only packages
 4. Output is scannable at a glance with color coding

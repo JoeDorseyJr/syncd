@@ -59,7 +59,12 @@
 > REQ-056 | Design: Colored Output — TTY detection
 
 - [ ] Add unit test: `isTerminal` returns false for non-TTY fd
+- [ ] Add unit test: formatter outputs ANSI green for additions when color enabled
+- [ ] Add unit test: formatter outputs ANSI red for removals when color enabled
+- [ ] Add unit test: formatter outputs ANSI yellow for maintenance when color enabled
+- [ ] Add unit test: correct prefix symbols (`+`, `-`, `~`)
 - [ ] Add integration test: pipe `syncd plan` output, confirm no ANSI escape codes
+- [ ] Add integration test: `syncd plan --no-color` in TTY, confirm no ANSI escape codes
 - [ ] Verify: `make test && make integration-test` passes
 
 **Estimate:** ~1 hour
@@ -124,6 +129,7 @@
 - [ ] Add integration test: pinned package skipped
 - [ ] Add integration test: one failure → exit 1, others still upgraded
 - [ ] Add integration test: confirmation prompt (cancel with "n")
+- [ ] Add integration test: upgrade works without config file (no pin filtering)
 - [ ] Verify: `make integration-test` passes
 
 **Estimate:** ~2 hours
@@ -156,6 +162,10 @@
 
 - [ ] Add unit test: generated YAML parses back into valid Config
 - [ ] Add unit test: only leaves in brews, not deps
+- [ ] Add unit test: casks included in output
+- [ ] Add unit test: taps included in output
+- [ ] Add unit test: output goes to stdout by default
+- [ ] Add unit test: output includes pin and cleanup sections with defaults
 - [ ] Add integration test: `syncd init` produces valid config
 - [ ] Add integration test: `--output` creates file
 - [ ] Add integration test: `--output` without `--force` refuses overwrite
@@ -174,7 +184,9 @@
 - [ ] Add `RunVerbose(name, args)` to `ExecRunner` — streams stdout/stderr
 - [ ] Update executor to use `RunVerbose` when flag is set
 - [ ] Verify: `syncd apply --yes --verbose` shows brew output
-- [ ] Verify: without `--verbose`, only ✓/✗ lines shown
+- [ ] Verify: `syncd upgrade --yes --verbose` shows brew output
+- [ ] Verify: without `--verbose`, only ✓/✗ lines shown (apply)
+- [ ] Verify: without `--verbose`, only ✓/✗ lines shown (upgrade)
 
 ### 5.2 Makefile install targets
 > REQ-059, REQ-060 | Design: Makefile Additions
@@ -213,7 +225,7 @@
 
 ### Requirements Covered
 
-All 31 requirements (REQ-033 through REQ-063) are covered by tasks above.
+All 34 requirements (REQ-033 through REQ-066) are covered by tasks above.
 
 | Requirement Range | Phase | Tasks |
 |-------------------|-------|-------|
@@ -222,10 +234,13 @@ All 31 requirements (REQ-033 through REQ-063) are covered by tasks above.
 | REQ-043–049 | Phase 4 | 4.1, 4.2, 4.3 |
 | REQ-050–052 | Phase 1 | 1.1, 1.2, 1.3 |
 | REQ-053–056 | Phase 2 | 2.1, 2.2 |
+| REQ-064 | Phase 2 | 2.1, 2.2 |
 | REQ-057–058 | Phase 5 | 5.1 |
 | REQ-059–060 | Phase 5 | 5.2 |
 | REQ-061–063 | Phase 1, 3 | 1.1, 3.2 |
+| REQ-065 | Phase 4 | 4.1, 4.3 |
+| REQ-066 | Phase 3 | 3.4, 3.5 |
 
 ### Uncovered Requirements
 
-None — all 31 requirements have at least one task with a concrete verification method.
+None — all 34 requirements have at least one task with a concrete verification method.

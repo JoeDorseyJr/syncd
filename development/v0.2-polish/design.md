@@ -41,6 +41,10 @@ flowchart TD
 
 5. **Pin in config, not in Homebrew** — Pin list is syncd-owned so it works regardless of backend. No `brew pin` calls. Supports REQ-040–042, future extensibility.
 
+6. **Upgrade is config-optional** — `syncd upgrade` loads config if available (for pin list) but works without one. This makes upgrade usable on any machine without setup. Supports Q1 resolution.
+
+7. **`--no-color` flag** — In addition to TTY detection, a `--no-color` persistent flag gives explicit control. Supports REQ-064.
+
 ---
 
 ## Technical Design
@@ -175,7 +179,7 @@ func NewInitCmd() *cobra.Command {
 }
 ```
 
-Output format matches the config schema exactly — the generated file is immediately usable with `syncd apply --config`.
+Output format matches the config schema exactly — the generated file is immediately usable with `syncd apply --config`. Init emits a full template including `pin: []` and `cleanup` section with sensible defaults so the user sees all available options.
 
 ### Colored Output
 
@@ -197,6 +201,8 @@ func init() {
         Green, Red, Yellow, Reset = "", "", "", ""
     }
 }
+
+// Also suppressed when --no-color persistent flag is set on root command
 
 func isTerminal(fd uintptr) bool {
     // Use golang.org/x/term or syscall-based check
@@ -228,11 +234,13 @@ The executor checks a verbose flag to choose between `Run` (capture) and `RunVer
 ### Makefile Additions
 
 ```makefile
+PREFIX ?= /usr/local
+
 install: build
-	cp bin/syncd /usr/local/bin/syncd
+	cp bin/syncd $(PREFIX)/bin/syncd
 
 uninstall:
-	rm -f /usr/local/bin/syncd
+	rm -f $(PREFIX)/bin/syncd
 ```
 
 ---
@@ -340,6 +348,7 @@ uninstall:
 | REQ-054 | Colored Output — red prefix |
 | REQ-055 | Colored Output — yellow prefix |
 | REQ-056 | Colored Output — TTY detection |
+| REQ-064 | Colored Output — `--no-color` flag |
 | REQ-057 | Verbose Flag — `RunVerbose` |
 | REQ-058 | Verbose Flag — default behavior unchanged |
 | REQ-059 | Makefile Additions — `install` target |
@@ -347,3 +356,6 @@ uninstall:
 | REQ-061 | New State Queries — `GetLeaves()` |
 | REQ-062 | New State Queries — `GetOutdated()` |
 | REQ-063 | New State Queries — `GetOutdatedCasks()` |
+| REQ-064 | Colored Output — `--no-color` flag |
+| REQ-065 | Init Command Flow — full template output |
+| REQ-066 | Upgrade Command Flow — config-optional |
