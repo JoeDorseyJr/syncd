@@ -62,14 +62,14 @@ func getOutdatedJSON(runner CommandRunner, name string, args ...string) ([]Outda
 
 	var result struct {
 		Formulae []struct {
-			Name             string `json:"name"`
+			Name              string   `json:"name"`
 			InstalledVersions []string `json:"installed_versions"`
-			CurrentVersion   string `json:"current_version"`
+			CurrentVersion    string   `json:"current_version"`
 		} `json:"formulae"`
 		Casks []struct {
-			Name             string `json:"name"`
-			InstalledVersions string `json:"installed_versions"`
-			CurrentVersion   string `json:"current_version"`
+			Name              string   `json:"name"`
+			InstalledVersions []string `json:"installed_versions"`
+			CurrentVersion    string   `json:"current_version"`
 		} `json:"casks"`
 	}
 
@@ -86,7 +86,11 @@ func getOutdatedJSON(runner CommandRunner, name string, args ...string) ([]Outda
 		pkgs = append(pkgs, OutdatedPkg{Name: f.Name, Current: current, Latest: f.CurrentVersion})
 	}
 	for _, c := range result.Casks {
-		pkgs = append(pkgs, OutdatedPkg{Name: c.Name, Current: c.InstalledVersions, Latest: c.CurrentVersion})
+		current := ""
+		if len(c.InstalledVersions) > 0 {
+			current = c.InstalledVersions[len(c.InstalledVersions)-1]
+		}
+		pkgs = append(pkgs, OutdatedPkg{Name: c.Name, Current: current, Latest: c.CurrentVersion})
 	}
 	return pkgs, nil
 }

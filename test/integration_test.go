@@ -193,7 +193,7 @@ func setOutdated(t *testing.T, stateDir string, brews, casks []string) {
 	if len(casks) > 0 {
 		var entries []string
 		for _, c := range casks {
-			entries = append(entries, fmt.Sprintf(`{"name":"%s","installed_versions":"1.0.0","current_version":"2.0.0"}`, c))
+			entries = append(entries, fmt.Sprintf(`{"name":"%s","installed_versions":["1.0.0"],"current_version":"2.0.0"}`, c))
 		}
 		json := fmt.Sprintf(`{"formulae":[],"casks":[%s]}`, strings.Join(entries, ","))
 		os.WriteFile(filepath.Join(stateDir, "outdated_casks_json"), []byte(json), 0644)

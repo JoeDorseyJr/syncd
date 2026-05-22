@@ -155,7 +155,7 @@ func TestGetOutdated_EmptyOutput(t *testing.T) {
 func TestGetOutdatedCasks_ParsesOutput(t *testing.T) {
 	mock := &MockRunner{
 		Outputs: []MockOutput{
-			{Out: []byte(`{"formulae":[],"casks":[{"name":"firefox","installed_versions":"120.0","current_version":"125.0"}]}`)},
+			{Out: []byte(`{"formulae":[],"casks":[{"name":"firefox","installed_versions":["120.0"],"current_version":"125.0"}]}`)},
 		},
 	}
 
