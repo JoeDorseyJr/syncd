@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/joedorseyjr/syncd/internal/brew"
 	"github.com/joedorseyjr/syncd/internal/config"
+	"github.com/joedorseyjr/syncd/internal/download"
 	"github.com/joedorseyjr/syncd/internal/progress"
 	"github.com/joedorseyjr/syncd/internal/runner"
 	"github.com/spf13/cobra"
@@ -21,6 +23,7 @@ var securityPkgs = map[string]bool{
 
 func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 	var yes bool
+	var concurrency int
 
 	cmd := &cobra.Command{
 		Use:   "upgrade",
@@ -96,6 +99,52 @@ func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 			brewNames := pkgNames(brewPkgs)
 			caskNames := pkgNames(caskPkgs)
 
+			// Pre-download phase (non-verbose only)
+			if !runner.Verbose {
+				dlConcurrency := concurrency
+				if dlConcurrency < 1 {
+					dlConcurrency = 1
+				}
+				cacheDir, err := download.CacheDir(r)
+				if err == nil {
+					platform := download.Platform(r)
+					urls := download.GetFormulaURLs(r, brewNames, platform)
+					caskURLs := download.GetCaskURLs(r, caskNames)
+					urls = append(urls, caskURLs...)
+
+					if len(urls) > 0 {
+						display := progress.NewDisplay()
+						total := len(urls)
+						var completed int64
+
+						results := download.PreDownload(urls, download.Options{
+							Concurrency: dlConcurrency,
+							CacheDir:    cacheDir,
+							OnComplete: func(res download.Result) {
+								c := int(atomic.AddInt64(&completed, 1))
+								display.Status("  Downloading [%d/%d]...", c, total)
+							},
+						})
+
+						var ok int
+						var totalBytes int64
+						for _, res := range results {
+							if res.Err == nil {
+								ok++
+								totalBytes += res.Bytes
+							}
+						}
+						display.Finish("  Downloaded %d/%d packages (%.1f MB)", ok, total, float64(totalBytes)/1e6)
+
+						for _, res := range results {
+							if res.Err != nil {
+								fmt.Printf("  ⚠ %s: %v\n", res.Package.Name, res.Err)
+							}
+						}
+					}
+				}
+			}
+
 			fmt.Printf("\nUpgrading (%d packages)...\n", len(brewNames)+len(caskNames))
 			var results []brew.Result
 			total := len(brewNames) + len(caskNames)
@@ -170,6 +219,7 @@ func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 	}
 
 	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "skip confirmation prompt")
+	cmd.Flags().IntVar(&concurrency, "concurrency", 4, "parallel download workers")
 	return cmd
 }
 

@@ -21,6 +21,7 @@ type Result struct {
 type Options struct {
 	Concurrency int
 	CacheDir    string
+	OnComplete  func(Result) // called after each download completes (optional)
 }
 
 // PreDownload downloads all packages in parallel to brew's cache.
@@ -45,6 +46,9 @@ func PreDownload(packages []PackageURL, opts Options) []Result {
 		if info, err := os.Stat(dest); err == nil && info.Size() > 0 {
 			results[i].Cached = true
 			results[i].Bytes = info.Size()
+			if opts.OnComplete != nil {
+				opts.OnComplete(results[i])
+			}
 			continue
 		}
 
@@ -57,6 +61,9 @@ func PreDownload(packages []PackageURL, opts Options) []Result {
 			bytes, err := downloadFile(client, p.URL, destPath)
 			results[idx].Bytes = bytes
 			results[idx].Err = err
+			if opts.OnComplete != nil {
+				opts.OnComplete(results[idx])
+			}
 		}(i, pkg, dest)
 	}
 

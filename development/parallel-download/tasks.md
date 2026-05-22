@@ -111,16 +111,16 @@
 ### 3.1 Aggregate progress display
 > REQ-144, REQ-145, REQ-146, REQ-147 | Design: Progress Display
 
-- [ ] Add progress callback to `PreDownload` (update display after each completion)
+- [x] Add progress callback to `PreDownload` (update display after each completion)
   - Normal mode: `display.Status("  Downloading [%d/%d] %.1f MB", completed, total, bytes)`
   - On finish: `display.Finish("  Downloaded %d/%d packages (%.1f MB)", ok, total, bytes)`
   - Verbose mode: print per-package `↓ name` / `✓ name` / `✗ name: error`
-- [ ] Verify: progress updates visible during download phase
+- [x] Verify: progress updates visible during download phase
 
 ### 3.2 Wire into upgrade command
 > REQ-138, REQ-148, REQ-150, REQ-151 | Design: Integration with Upgrade Command
 
-- [ ] Update `internal/cli/upgrade.go`
+- [x] Update `internal/cli/upgrade.go`
   - Add `--concurrency` flag (int, default 4)
   - After confirmation, before upgrade loop:
     - If not verbose and packages exist:
@@ -130,9 +130,9 @@
       - Call `download.PreDownload(urls, opts)`
       - Print warnings for any failures
   - Skip entirely when `runner.Verbose` is true
-- [ ] Verify: `syncd upgrade --yes` pre-downloads before upgrading
-- [ ] Verify: `syncd upgrade --verbose` skips pre-download
-- [ ] Verify: `syncd upgrade --concurrency 2` limits workers
+- [x] Verify: `syncd upgrade --yes` pre-downloads before upgrading
+- [x] Verify: `syncd upgrade --verbose` skips pre-download
+- [x] Verify: `syncd upgrade --concurrency 2` limits workers
 
 ### 3.3 Integration tests
 > REQ-136, REQ-142, REQ-148, REQ-150, REQ-156 | Design: Integration Tests
