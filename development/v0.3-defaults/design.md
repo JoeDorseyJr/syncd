@@ -34,9 +34,9 @@ flowchart TD
 
 ### Design Decisions
 
-1. **New `internal/defaults` package** — Keeps macOS defaults logic separate from Homebrew logic. Both use the same `CommandRunner` interface from `internal/brew` for testability. No import cycle: `defaults` imports `brew` only for the `CommandRunner` interface.
+1. **New `internal/defaults` package** — Keeps macOS defaults logic separate from Homebrew logic. Both use the same `CommandRunner` interface from `internal/runner` for testability. No import cycle.
 
-2. **Reuse `CommandRunner` interface** — The existing `CommandRunner` and `MockRunner` in `internal/brew` work for any shell command. The defaults package accepts a `CommandRunner` parameter, enabling the same mock-based unit testing pattern.
+2. **Extract `CommandRunner` to `internal/runner`** — The `CommandRunner`, `MockRunner`, and `ExecRunner` types move to a shared `internal/runner` package. Both `brew` and `defaults` import it. This avoids cross-domain coupling.
 
 3. **Drift as a separate struct from Plan** — Defaults drift is conceptually different from package changes (no install/remove, just write). A `DefaultsDrift` struct keeps the plan clean and allows independent display/execution.
 
@@ -108,19 +108,24 @@ func ValidateDefaults(entries []DefaultEntry) error {
 }
 ```
 
+`validateTypeMatch` also rejects non-scalar values (arrays, maps) that YAML may parse into `[]interface{}` or `map[string]interface{}`.
+```
+
 ### Defaults State Reader
 
 ```go
 // internal/defaults/state.go
 package defaults
 
-import "github.com/joedorseyjr/syncd/internal/brew"
+import "github.com/joedorseyjr/syncd/internal/runner"
 
 // ReadValue reads the current value of a default. Returns ("", false, nil) if unset.
-func ReadValue(runner brew.CommandRunner, domain, key string) (string, bool, error)
+// Always uses Run (capture) — never RunMutate — because output must be parsed.
+func ReadValue(r runner.CommandRunner, domain, key string) (string, bool, error)
 
 // ReadType reads the stored type of a default. Returns ("", false, nil) if unset.
-func ReadType(runner brew.CommandRunner, domain, key string) (string, bool, error)
+// Always uses Run (capture) for the same reason.
+func ReadType(r runner.CommandRunner, domain, key string) (string, bool, error)
 ```
 
 | Function | Command | Handles |
@@ -175,6 +180,8 @@ func CompareValue(rawOutput string, configType string, configValue interface{}) 
 
 Bool mapping: `defaults read` returns `1`/`0`; config uses `true`/`false`. The comparison normalizes both sides.
 
+**Bool round-trip:** Write `TRUE` → macOS stores as boolean → `defaults read` returns `1` → compare against config `true` → match. This is correct and tested.
+
 ### Defaults Executor
 
 ```go
@@ -224,11 +231,20 @@ package defaults
 
 // KnownApps maps preference domains to the app that must be restarted.
 var KnownApps = map[string]string{
-    "com.apple.dock":            "Dock",
-    "com.apple.finder":          "Finder",
-    "com.apple.systemuiserver":  "SystemUIServer",
-    "com.apple.menuextra.clock": "SystemUIServer",
-    "NSGlobalDomain":            "",  // no restart needed
+    "com.apple.dock":                "Dock",
+    "com.apple.finder":              "Finder",
+    "com.apple.systemuiserver":      "SystemUIServer",
+    "com.apple.menuextra.clock":     "SystemUIServer",
+    "com.apple.Safari":              "Safari",
+    "com.apple.Terminal":            "Terminal",
+    "com.apple.screencapture":       "SystemUIServer",
+    "com.apple.driver.AppleBluetoothMultitouch.trackpad": "",
+    "com.apple.AppleMultitouchTrackpad": "",
+    "com.apple.HIToolbox":           "",
+    "com.apple.desktopservices":     "Finder",
+    "com.apple.ActivityMonitor":     "Activity Monitor",
+    "com.apple.TextEdit":            "TextEdit",
+    "NSGlobalDomain":                "",
 }
 ```
 
@@ -285,7 +301,7 @@ cmd.Flags().StringVar(&defaultsFlag, "defaults", "", "comma-separated domain:key
 ```
 
 When `--defaults` is provided:
-1. Parse comma-separated `domain:key` pairs
+1. Parse comma-separated `domain:key` pairs (split each pair on first `:` only)
 2. For each pair, call `ReadType` and `ReadValue`
 3. Skip entries that can't be read (print warning)
 4. Look up domain in `KnownApps` for `kill` inference

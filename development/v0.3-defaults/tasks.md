@@ -5,15 +5,17 @@
 ### 1.1 Config struct: DefaultEntry
 > REQ-067, REQ-068, REQ-069, REQ-070, REQ-072, REQ-073 | Design: Config Changes
 
-- [ ] Add `DefaultEntry` struct to `internal/config/config.go`
+- [x] Add `DefaultEntry` struct to `internal/config/config.go`
   - Fields: `Domain`, `Key`, `Type`, `Value` (interface{}), `Kill` ([]string, omitempty)
-- [ ] Add `Defaults []DefaultEntry` field to `Config` struct
-- [ ] Verify: existing configs without `defaults` still parse correctly
-- [ ] Verify: `go build ./...` compiles
+- [x] Add `Defaults []DefaultEntry` field to `Config` struct
+- [x] Verify: existing configs without `defaults` still parse correctly
+- [x] Verify: `go build ./...` compiles
 
 ### 1.2 Validation: ValidateDefaults
 > REQ-068, REQ-069, REQ-070, REQ-071 | Design: Validation
 
+- [ ] Extract `CommandRunner`, `ExecRunner`, `MockRunner` to `internal/runner/` package
+- [ ] Update `internal/brew/` to import from `internal/runner/`
 - [ ] Create `internal/config/validate.go`
   - `ValidateDefaults(entries []DefaultEntry) error`
   - Check domain, key, type required
@@ -216,6 +218,7 @@
 - [ ] Ensure `--verbose` prints `defaults read` and `defaults write` command output
   - Use `RunMutate` for writes (already streams when verbose)
   - For reads during plan, print command + output when verbose flag set
+- [ ] Add integration test: `syncd plan --verbose` with defaults shows command output
 - [ ] Verify: `syncd plan --verbose` shows defaults read output
 - [ ] Verify: `syncd apply --yes --verbose` shows defaults write output
 

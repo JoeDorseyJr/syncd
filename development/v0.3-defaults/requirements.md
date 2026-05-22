@@ -68,7 +68,7 @@
 **REQ-082:** `syncd apply` shall write defaults with the correct type flag: `-string`, `-int`, `-float`, `-bool`.
 - Verification: Unit test — confirm correct type flag passed for each type.
 
-**REQ-083:** `syncd apply` shall restart apps listed in the `kill` field after writing all defaults for that domain.
+**REQ-083:** `syncd apply` shall restart apps listed in the `kill` field after writing all drifted defaults.
 - Verification: Integration test — declare defaults with `kill: [Dock]`, apply, confirm `killall Dock` executed.
 
 **REQ-084:** `syncd apply` shall deduplicate app restarts (kill each app at most once per apply run).
@@ -155,7 +155,7 @@
 ### Verbose Output
 
 **REQ-107:** `--verbose` shall print the full `defaults read` and `defaults write` command output during plan/apply.
-- Verification: Run with `--verbose`, confirm command output visible.
+- Verification: Integration test — run `syncd plan --verbose` with fake defaults, confirm command output visible in stdout.
 
 ---
 
