@@ -72,23 +72,23 @@
 ### 3.1 Wire into upgrade command
 > REQ-157, REQ-172, REQ-173 | Design: Integration with Upgrade Command
 
-- [ ] Update pre-download section in `internal/cli/upgrade.go`:
+- [x] Update pre-download section in `internal/cli/upgrade.go`:
   - Create `DownloadDisplay` with `dlConcurrency`
   - Call `dd.Start()` before `PreDownload`
   - Set `OnProgress` to call `dd.UpdateProgress`
   - Set `OnComplete` to call `dd.MarkDone`
   - Call `stop()` after `PreDownload` returns
   - Remove old single-line `Downloading [N/M]...` counter
-- [ ] Keep verbose mode unchanged (skips pre-download entirely)
-- [ ] Verify: `syncd upgrade --yes` shows per-file progress bars
-- [ ] Verify: `syncd upgrade --verbose` skips pre-download (unchanged)
+- [x] Keep verbose mode unchanged (skips pre-download entirely)
+- [x] Verify: `syncd upgrade --yes` shows per-file progress bars
+- [x] Verify: `syncd upgrade --verbose` skips pre-download (unchanged)
 
 ### 3.2 Integration tests
 > REQ-159, REQ-167, REQ-172, REQ-173 | Design: Integration Tests
 
-- [ ] Add integration test: download with progress — output contains cursor-up codes (TTY)
-- [ ] Add integration test: non-TTY — no cursor codes, one line per completion
-- [ ] Verify: `make test && make integration-test` passes (all existing tests green)
+- [x] Add integration test: download with progress — output contains cursor-up codes (TTY)
+- [x] Add integration test: non-TTY — no cursor codes, one line per completion
+- [x] Verify: `make test && make integration-test` passes (all existing tests green)
 
 **Estimate:** ~1 hour
 

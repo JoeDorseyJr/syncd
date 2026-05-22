@@ -234,3 +234,45 @@ func TestPreDownload_OnProgressCalled(t *testing.T) {
 		t.Fatal("OnProgress was never called")
 	}
 }
+
+func TestPreDownload_WithDownloadDisplay(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", "20")
+		w.Write([]byte("01234567890123456789"))
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	pkgs := []PackageURL{
+		{Name: "pkg1", Version: "1.0", URL: srv.URL + "/a", Filename: "pkg1.tar.gz"},
+		{Name: "pkg2", Version: "1.0", URL: srv.URL + "/b", Filename: "pkg2.tar.gz"},
+	}
+
+	// Create display in non-TTY mode (test environment)
+	dd := &DownloadDisplay{slots: make([]SlotState, 2), isTTY: false}
+
+	var doneCount int64
+	results := PreDownload(pkgs, Options{
+		Concurrency: 2,
+		CacheDir:    dir,
+		OnProgress: func(name string, downloaded, total int64) {
+			dd.UpdateProgress(name, downloaded, total)
+		},
+		OnComplete: func(res Result) {
+			dd.MarkDone(res.Package.Name, res.Err)
+			atomic.AddInt64(&doneCount, 1)
+		},
+	})
+
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+	for _, r := range results {
+		if r.Err != nil {
+			t.Fatalf("unexpected error: %v", r.Err)
+		}
+	}
+	if atomic.LoadInt64(&doneCount) != 2 {
+		t.Fatalf("expected 2 done callbacks, got %d", doneCount)
+	}
+}

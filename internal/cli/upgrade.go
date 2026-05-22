@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/joedorseyjr/syncd/internal/brew"
@@ -113,28 +112,21 @@ func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 					urls = append(urls, caskURLs...)
 
 					if len(urls) > 0 {
-						display := progress.NewDisplay()
-						total := len(urls)
-						var completed int64
+						dd := download.NewDownloadDisplay(dlConcurrency)
+						stop := dd.Start()
 
 						results := download.PreDownload(urls, download.Options{
 							Concurrency: dlConcurrency,
 							CacheDir:    cacheDir,
+							OnProgress: func(name string, downloaded, total int64) {
+								dd.UpdateProgress(name, downloaded, total)
+							},
 							OnComplete: func(res download.Result) {
-								c := int(atomic.AddInt64(&completed, 1))
-								display.Status("  Downloading [%d/%d]...", c, total)
+								dd.MarkDone(res.Package.Name, res.Err)
 							},
 						})
 
-						var ok int
-						var totalBytes int64
-						for _, res := range results {
-							if res.Err == nil {
-								ok++
-								totalBytes += res.Bytes
-							}
-						}
-						display.Finish("  Downloaded %d/%d packages (%.1f MB)", ok, total, float64(totalBytes)/1e6)
+						stop()
 
 						for _, res := range results {
 							if res.Err != nil {
