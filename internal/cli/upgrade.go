@@ -252,7 +252,7 @@ var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "�
 
 func startSpinner(prefix string) func() {
 	done := make(chan struct{})
-	fmt.Printf("\r%s %s", prefix, spinnerFrames[0])
+	fmt.Printf("\r  %s %s", spinnerFrames[0], prefix)
 	go func() {
 		i := 1
 		for {
@@ -260,14 +260,13 @@ func startSpinner(prefix string) func() {
 			case <-done:
 				return
 			case <-time.After(100 * time.Millisecond):
-				fmt.Printf("\r%s %s", prefix, spinnerFrames[i%len(spinnerFrames)])
+				fmt.Printf("\r  %s %s", spinnerFrames[i%len(spinnerFrames)], prefix)
 				i++
 			}
 		}
 	}()
 	return func() {
 		close(done)
-		// Move to new line so Password: or result appears cleanly
 		fmt.Print("\r\033[K")
 	}
 }
