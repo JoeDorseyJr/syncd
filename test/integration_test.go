@@ -1277,3 +1277,23 @@ func TestInit_DefaultsCombinedWithBrewSnapshot(t *testing.T) {
 		t.Errorf("expected 'tilesize' in defaults, got: %s", out)
 	}
 }
+
+func TestPlan_VerboseShowsDefaultsReadOutput(t *testing.T) {
+	brewState := setupFakeState(t, nil, []string{"git"}, nil)
+	defaultsState := setupFakeDefaultsState(t, map[string]string{
+		"com.apple.dock__tilesize": "64",
+	})
+	cfg := writeConfig(t, `
+brews:
+  - git
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+    value: 48
+`)
+	out, _ := runSyncdWithDefaults(t, brewState, defaultsState, 2, "plan", "--verbose", "--config", cfg)
+	if !strings.Contains(out, "defaults read com.apple.dock tilesize") {
+		t.Errorf("expected 'defaults read com.apple.dock tilesize' in verbose output, got: %s", out)
+	}
+}

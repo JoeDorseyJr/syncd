@@ -215,12 +215,12 @@
 ### 6.1 Verbose output for defaults
 > REQ-107 | Design: CLI Changes — verbose
 
-- [ ] Ensure `--verbose` prints `defaults read` and `defaults write` command output
+- [x] Ensure `--verbose` prints `defaults read` and `defaults write` command output
   - Use `RunMutate` for writes (already streams when verbose)
   - For reads during plan, print command + output when verbose flag set
-- [ ] Add integration test: `syncd plan --verbose` with defaults shows command output
-- [ ] Verify: `syncd plan --verbose` shows defaults read output
-- [ ] Verify: `syncd apply --yes --verbose` shows defaults write output
+- [x] Add integration test: `syncd plan --verbose` with defaults shows command output
+- [x] Verify: `syncd plan --verbose` shows defaults read output
+- [x] Verify: `syncd apply --yes --verbose` shows defaults write output
 
 ### 6.2 End-to-end validation
 > All REQs | Full user workflow
