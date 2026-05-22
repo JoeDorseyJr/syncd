@@ -67,17 +67,22 @@ func (d *DownloadDisplay) UpdateProgress(name string, downloaded, total int64) {
 	defer d.mu.Unlock()
 	for i := range d.slots {
 		if d.slots[i].Name == name && !d.slots[i].Done {
-			atomic.StoreInt64(&d.slots[i].Downloaded, downloaded)
+			d.slots[i].Downloaded = downloaded
 			d.slots[i].Total = total
 			return
 		}
 	}
-	// Auto-assign to first free slot
+	// Auto-assign to first empty slot
 	for i := range d.slots {
 		if d.slots[i].Name == "" {
-			d.slots[i].Name = name
-			d.slots[i].Downloaded = downloaded
-			d.slots[i].Total = total
+			d.slots[i] = SlotState{Name: name, Downloaded: downloaded, Total: total}
+			return
+		}
+	}
+	// Take over first done slot
+	for i := range d.slots {
+		if d.slots[i].Done {
+			d.slots[i] = SlotState{Name: name, Downloaded: downloaded, Total: total}
 			return
 		}
 	}

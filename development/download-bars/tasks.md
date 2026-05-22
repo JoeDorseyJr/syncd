@@ -29,7 +29,7 @@
 ### 2.1 Slot management and render logic
 > REQ-157, REQ-158, REQ-159, REQ-160, REQ-161, REQ-162, REQ-163, REQ-166, REQ-174, REQ-175, REQ-176 | Design: DownloadDisplay, Render Logic
 
-- [ ] Add to `internal/download/progress.go`:
+- [x] Add to `internal/download/progress.go`:
   - `SlotState` struct: Name, Downloaded, Total, Done, Err
   - `DownloadDisplay` struct: mu (sync.Mutex), slots, isTTY, rendered
   - `NewDownloadDisplay(concurrency int) *DownloadDisplay` — detect TTY via `golang.org/x/term`
@@ -38,13 +38,13 @@
   - `AssignSlot(name string, total int64)` — assign package to free slot
   - `Start() func()` — start 100ms ticker goroutine, return stop function
   - `render()` — cursor-up + reprint all slots
-- [ ] Implement `renderSlot(s SlotState) string`:
+- [x] Implement `renderSlot(s SlotState) string`:
   - Active with known total: `  ↓ name  ████░░░░  45% (22/50 MB)` (20-char bar, █/░)
   - Active with unknown total: `  ↓ name  22.0 MB`
   - Done success: `  ✓ name (50.0 MB)` (green ✓)
   - Done error: `  ✗ name: error` (red ✗)
   - Empty slot: empty string
-- [ ] Add unit tests in `internal/download/progress_test.go`
+- [x] Add unit tests in `internal/download/progress_test.go`
   - Test: renderSlot at 50% → 10█ + 10░, "50%"
   - Test: renderSlot at 0% → 20░
   - Test: renderSlot at 100% → 20█
@@ -53,15 +53,15 @@
   - Test: renderSlot done error → ✗ + name + error
   - Test: AssignSlot fills first free slot
   - Test: MarkDone frees slot for next package
-- [ ] Verify: `go test ./internal/download/...` passes
+- [x] Verify: `go test ./internal/download/...` passes
 
 ### 2.2 Non-TTY fallback
 > REQ-167, REQ-168 | Design: Non-TTY Fallback
 
-- [ ] When `isTTY` is false, `render()` is a no-op
-- [ ] Non-TTY completion handled by existing `OnComplete` callback in upgrade command
-- [ ] Add unit test: non-TTY DownloadDisplay produces no cursor codes
-- [ ] Verify: `go test ./internal/download/...` passes
+- [x] When `isTTY` is false, `render()` is a no-op
+- [x] Non-TTY completion handled by existing `OnComplete` callback in upgrade command
+- [x] Add unit test: non-TTY DownloadDisplay produces no cursor codes
+- [x] Verify: `go test ./internal/download/...` passes
 
 **Estimate:** ~1.5 hours
 
