@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/joedorseyjr/syncd/internal/brew"
 	"github.com/joedorseyjr/syncd/internal/cli"
+	"github.com/joedorseyjr/syncd/internal/runner"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +25,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default ~/.config/syncd/config.yaml)")
 	rootCmd.PersistentFlags().BoolVar(&cli.NoColor, "no-color", false, "disable colored output")
-	rootCmd.PersistentFlags().BoolVar(&brew.Verbose, "verbose", false, "show full brew command output")
+	rootCmd.PersistentFlags().BoolVar(&runner.Verbose, "verbose", false, "show full brew command output")
 	rootCmd.AddCommand(cli.NewPlanCmd(&cfgFile))
 	rootCmd.AddCommand(cli.NewApplyCmd(&cfgFile))
 	rootCmd.AddCommand(cli.NewUpgradeCmd(&cfgFile))

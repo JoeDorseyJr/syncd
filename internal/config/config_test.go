@@ -180,3 +180,275 @@ func writeTemp(t *testing.T, content string) string {
 	}
 	return path
 }
+
+func TestLoad_ValidDefaults(t *testing.T) {
+	content := `
+brews:
+  - git
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+    value: 48
+    kill:
+      - Dock
+  - domain: NSGlobalDomain
+    key: KeyRepeat
+    type: int
+    value: 2
+`
+	path := writeTemp(t, content)
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(cfg.Defaults) != 2 {
+		t.Fatalf("expected 2 defaults, got %d", len(cfg.Defaults))
+	}
+	if cfg.Defaults[0].Domain != "com.apple.dock" {
+		t.Errorf("unexpected domain: %s", cfg.Defaults[0].Domain)
+	}
+	if len(cfg.Defaults[0].Kill) != 1 || cfg.Defaults[0].Kill[0] != "Dock" {
+		t.Errorf("unexpected kill: %v", cfg.Defaults[0].Kill)
+	}
+	if cfg.Defaults[1].Kill != nil {
+		t.Errorf("expected nil kill, got: %v", cfg.Defaults[1].Kill)
+	}
+}
+
+func TestLoad_DefaultsMissingDomain(t *testing.T) {
+	content := `
+defaults:
+  - key: tilesize
+    type: int
+    value: 48
+`
+	path := writeTemp(t, content)
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("expected error for missing domain")
+	}
+	if !strings.Contains(err.Error(), "domain is required") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestLoad_DefaultsMissingKey(t *testing.T) {
+	content := `
+defaults:
+  - domain: com.apple.dock
+    type: int
+    value: 48
+`
+	path := writeTemp(t, content)
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("expected error for missing key")
+	}
+	if !strings.Contains(err.Error(), "key is required") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestLoad_DefaultsInvalidType(t *testing.T) {
+	content := `
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: integer
+    value: 48
+`
+	path := writeTemp(t, content)
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("expected error for invalid type")
+	}
+	if !strings.Contains(err.Error(), "type must be string, int, float, or bool") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestLoad_DefaultsTypeMismatch(t *testing.T) {
+	content := `
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+    value: hello
+`
+	path := writeTemp(t, content)
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("expected error for type/value mismatch")
+	}
+	if !strings.Contains(err.Error(), "not a valid int") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestLoad_DefaultsMissingValue(t *testing.T) {
+	content := `
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+`
+	path := writeTemp(t, content)
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("expected error for missing value")
+	}
+	if !strings.Contains(err.Error(), "value is required") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestLoad_DefaultsUnknownField(t *testing.T) {
+	content := `
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+    value: 48
+    extra: bad
+`
+	path := writeTemp(t, content)
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("expected error for unknown field in defaults entry")
+	}
+	if !strings.Contains(err.Error(), "extra") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestLoad_DefaultsKillPresent(t *testing.T) {
+	content := `
+defaults:
+  - domain: com.apple.dock
+    key: autohide
+    type: bool
+    value: true
+    kill:
+      - Dock
+`
+	path := writeTemp(t, content)
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(cfg.Defaults[0].Kill) != 1 || cfg.Defaults[0].Kill[0] != "Dock" {
+		t.Errorf("unexpected kill: %v", cfg.Defaults[0].Kill)
+	}
+}
+
+func TestLoad_DefaultsKillAbsent(t *testing.T) {
+	content := `
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+    value: 48
+`
+	path := writeTemp(t, content)
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Defaults[0].Kill != nil {
+		t.Errorf("expected nil kill, got: %v", cfg.Defaults[0].Kill)
+	}
+}
+
+func TestLoad_DefaultsBoolTypeMismatch(t *testing.T) {
+	content := `
+defaults:
+  - domain: com.apple.dock
+    key: autohide
+    type: bool
+    value: 1
+`
+	path := writeTemp(t, content)
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("expected error for bool type with int value")
+	}
+	if !strings.Contains(err.Error(), "not a valid bool") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestLoad_DefaultsArrayValueRejected(t *testing.T) {
+	content := `
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: string
+    value:
+      - a
+      - b
+`
+	path := writeTemp(t, content)
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("expected error for array value")
+	}
+	if !strings.Contains(err.Error(), "scalar") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestLoad_DefaultsMapValueRejected(t *testing.T) {
+	content := `
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: string
+    value:
+      nested: thing
+`
+	path := writeTemp(t, content)
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("expected error for map value")
+	}
+	if !strings.Contains(err.Error(), "scalar") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestLoad_DefaultsFloatType(t *testing.T) {
+	content := `
+defaults:
+  - domain: com.apple.dock
+    key: magnification
+    type: float
+    value: 0.5
+`
+	path := writeTemp(t, content)
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Defaults[0].Value != 0.5 {
+		t.Errorf("unexpected value: %v", cfg.Defaults[0].Value)
+	}
+}
+
+func TestLoad_DefaultsStringType(t *testing.T) {
+	content := `
+defaults:
+  - domain: com.apple.dock
+    key: orientation
+    type: string
+    value: left
+`
+	path := writeTemp(t, content)
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Defaults[0].Value != "left" {
+		t.Errorf("unexpected value: %v", cfg.Defaults[0].Value)
+	}
+}

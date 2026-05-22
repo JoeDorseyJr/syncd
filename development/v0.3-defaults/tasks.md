@@ -14,15 +14,15 @@
 ### 1.2 Validation: ValidateDefaults
 > REQ-068, REQ-069, REQ-070, REQ-071 | Design: Validation
 
-- [ ] Extract `CommandRunner`, `ExecRunner`, `MockRunner` to `internal/runner/` package
-- [ ] Update `internal/brew/` to import from `internal/runner/`
-- [ ] Create `internal/config/validate.go`
+- [x] Extract `CommandRunner`, `ExecRunner`, `MockRunner` to `internal/runner/` package
+- [x] Update `internal/brew/` to import from `internal/runner/`
+- [x] Create `internal/config/validate.go`
   - `ValidateDefaults(entries []DefaultEntry) error`
   - Check domain, key, type required
   - Check type is one of: string, int, float, bool
   - Check value is present and matches declared type
-- [ ] Call `ValidateDefaults` from `Load()` after decode
-- [ ] Add unit tests in `internal/config/config_test.go`
+- [x] Call `ValidateDefaults` from `Load()` after decode
+- [x] Add unit tests in `internal/config/config_test.go`
   - Test: valid defaults section parses correctly
   - Test: missing domain returns error
   - Test: missing key returns error
@@ -32,7 +32,7 @@
   - Test: unknown field in defaults entry rejected by KnownFields
   - Test: optional kill field parses when present
   - Test: optional kill field absent → nil/empty
-- [ ] Verify: `go test ./internal/config/...` passes
+- [x] Verify: `go test ./internal/config/...` passes
 
 **Estimate:** ~1.5 hours
 

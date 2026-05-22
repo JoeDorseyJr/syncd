@@ -10,11 +10,20 @@ import (
 )
 
 type Config struct {
-	Taps    []string `yaml:"taps"`
-	Brews   []string `yaml:"brews"`
-	Casks   []string `yaml:"casks"`
-	Pin     []string `yaml:"pin"`
-	Cleanup Cleanup  `yaml:"cleanup"`
+	Taps     []string       `yaml:"taps"`
+	Brews    []string       `yaml:"brews"`
+	Casks    []string       `yaml:"casks"`
+	Pin      []string       `yaml:"pin"`
+	Defaults []DefaultEntry `yaml:"defaults"`
+	Cleanup  Cleanup        `yaml:"cleanup"`
+}
+
+type DefaultEntry struct {
+	Domain string      `yaml:"domain"`
+	Key    string      `yaml:"key"`
+	Type   string      `yaml:"type"`
+	Value  interface{} `yaml:"value"`
+	Kill   []string    `yaml:"kill,omitempty"`
 }
 
 type Cleanup struct {
@@ -44,6 +53,10 @@ func Load(path string) (*Config, error) {
 	dec := yaml.NewDecoder(bytes.NewReader(data))
 	dec.KnownFields(true)
 	if err := dec.Decode(&cfg); err != nil {
+		return nil, fmt.Errorf("invalid config in %s: %w", path, err)
+	}
+
+	if err := ValidateDefaults(cfg.Defaults); err != nil {
 		return nil, fmt.Errorf("invalid config in %s: %w", path, err)
 	}
 

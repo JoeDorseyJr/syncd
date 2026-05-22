@@ -1,101 +1,21 @@
 package brew
 
-import (
-	"fmt"
-	"os"
-	"os/exec"
-	"strings"
-)
+import "github.com/joedorseyjr/syncd/internal/runner"
 
 // CommandRunner abstracts command execution for testability.
-type CommandRunner interface {
-	Run(name string, args ...string) ([]byte, error)
-	RunMutate(name string, args ...string) ([]byte, error)
-}
-
-// Verbose controls whether mutating commands stream output to stdout/stderr.
-var Verbose bool
+type CommandRunner = runner.CommandRunner
 
 // ExecRunner executes real shell commands.
-type ExecRunner struct{}
-
-func (r *ExecRunner) Run(name string, args ...string) ([]byte, error) {
-	cmd := exec.Command(name, args...)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return out, &RunError{
-			Cmd:    name + " " + strings.Join(args, " "),
-			Output: strings.TrimSpace(string(out)),
-			Err:    err,
-		}
-	}
-	return out, nil
-}
-
-func (r *ExecRunner) RunMutate(name string, args ...string) ([]byte, error) {
-	if Verbose {
-		cmd := exec.Command(name, args...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		err := cmd.Run()
-		if err != nil {
-			return nil, &RunError{
-				Cmd: name + " " + strings.Join(args, " "),
-				Err: err,
-			}
-		}
-		return nil, nil
-	}
-	return r.Run(name, args...)
-}
+type ExecRunner = runner.ExecRunner
 
 // RunError provides diagnostic context for failed commands.
-type RunError struct {
-	Cmd    string
-	Output string
-	Err    error
-}
-
-func (e *RunError) Error() string {
-	if e.Output != "" {
-		return fmt.Sprintf("%s: %s", e.Cmd, e.Output)
-	}
-	return fmt.Sprintf("%s: %v", e.Cmd, e.Err)
-}
-
-func (e *RunError) Unwrap() error { return e.Err }
+type RunError = runner.RunError
 
 // MockRunner records calls and returns preset output for tests.
-type MockRunner struct {
-	Outputs      []MockOutput
-	Calls        []MockCall
-	FailOnExtras bool // if true, return error when outputs are exhausted
-	idx          int
-}
+type MockRunner = runner.MockRunner
 
-type MockOutput struct {
-	Out []byte
-	Err error
-}
+// MockOutput holds preset output for MockRunner.
+type MockOutput = runner.MockOutput
 
-type MockCall struct {
-	Name string
-	Args []string
-}
-
-func (m *MockRunner) Run(name string, args ...string) ([]byte, error) {
-	m.Calls = append(m.Calls, MockCall{Name: name, Args: args})
-	if m.idx >= len(m.Outputs) {
-		if m.FailOnExtras {
-			return nil, fmt.Errorf("unexpected call: %s %v", name, args)
-		}
-		return nil, nil
-	}
-	out := m.Outputs[m.idx]
-	m.idx++
-	return out.Out, out.Err
-}
-
-func (m *MockRunner) RunMutate(name string, args ...string) ([]byte, error) {
-	return m.Run(name, args...)
-}
+// MockCall records a single command invocation.
+type MockCall = runner.MockCall
