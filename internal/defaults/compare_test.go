@@ -49,3 +49,15 @@ func TestCompareValue_StringMismatch(t *testing.T) {
 		t.Fatal("expected no match")
 	}
 }
+
+func TestCompareValue_FloatMismatch(t *testing.T) {
+	if CompareValue("0.6", "float", 0.5) {
+		t.Fatal("expected no match")
+	}
+}
+
+func TestCompareValue_UnknownType(t *testing.T) {
+	if CompareValue("hello", "dict", "hello") {
+		t.Fatal("expected no match for unknown type")
+	}
+}

@@ -83,3 +83,13 @@ func TestReadType_Unset(t *testing.T) {
 		t.Fatalf("expected empty string, got '%s'", val)
 	}
 }
+
+func TestReadType_OtherError(t *testing.T) {
+	mock := &runner.MockRunner{
+		Outputs: []runner.MockOutput{{Out: nil, Err: fmt.Errorf("network error")}},
+	}
+	_, _, err := ReadType(mock, "com.apple.dock", "tilesize")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
