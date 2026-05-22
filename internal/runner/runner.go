@@ -21,6 +21,7 @@ type ExecRunner struct{}
 
 func (r *ExecRunner) Run(name string, args ...string) ([]byte, error) {
 	cmd := exec.Command(name, args...)
+	cmd.Env = brewEnv()
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return out, &RunError{
@@ -35,6 +36,7 @@ func (r *ExecRunner) Run(name string, args ...string) ([]byte, error) {
 func (r *ExecRunner) RunMutate(name string, args ...string) ([]byte, error) {
 	if Verbose {
 		cmd := exec.Command(name, args...)
+		cmd.Env = brewEnv()
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()
@@ -47,6 +49,13 @@ func (r *ExecRunner) RunMutate(name string, args ...string) ([]byte, error) {
 		return nil, nil
 	}
 	return r.Run(name, args...)
+}
+
+// brewEnv returns the current environment with HOMEBREW_NO_AUTO_UPDATE=1
+// to prevent brew from polluting stdout with update messages.
+func brewEnv() []string {
+	env := os.Environ()
+	return append(env, "HOMEBREW_NO_AUTO_UPDATE=1")
 }
 
 // RunError provides diagnostic context for failed commands.
