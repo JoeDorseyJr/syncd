@@ -47,20 +47,29 @@ func (s *ExecStarter) Start(name string, args []string) (Process, io.ReadCloser,
 		return nil, nil, err
 	}
 
+	proc := &execProcess{cmd: cmd, done: make(chan struct{})}
+
 	// Close write end after process exits so reader gets EOF
 	go func() {
-		cmd.Wait()
+		proc.err = cmd.Wait()
 		pw.Close()
+		close(proc.done)
 	}()
 
-	return &execProcess{cmd: cmd}, pr, nil
+	return proc, pr, nil
 }
 
 type execProcess struct {
-	cmd *exec.Cmd
+	cmd  *exec.Cmd
+	done chan struct{}
+	err  error
 }
 
-func (p *execProcess) Wait() error { return p.cmd.Wait() }
+func (p *execProcess) Wait() error {
+	<-p.done
+	return p.err
+}
+
 func (p *execProcess) Kill() error { return p.cmd.Process.Kill() }
 
 // brewEnv returns the current environment with HOMEBREW_NO_AUTO_UPDATE=1.

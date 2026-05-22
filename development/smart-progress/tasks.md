@@ -89,27 +89,27 @@
 ### 3.1 Wire progress into upgrade command
 > REQ-108, REQ-109, REQ-111, REQ-112, REQ-121, REQ-123 | Design: Integration with Upgrade Command
 
-- [ ] Update `internal/cli/upgrade.go`
+- [x] Update `internal/cli/upgrade.go`
   - Create `progress.NewDisplay()` before upgrade loop
   - When `runner.Verbose` is true: use `RunMutate` (unchanged behavior)
   - When not verbose: use `progress.RunWithProgress` with phase callback
   - On success: `display.Finish("  %s✓%s %s", Green, Reset, name)`
   - On failure: extract error, `display.Finish("  %s✗%s %s: %s", Red, Reset, name, errMsg)`
   - Same pattern for cask upgrades
-- [ ] Verify: `syncd upgrade --yes` shows progress lines (not raw brew output)
-- [ ] Verify: `syncd upgrade --yes --verbose` streams raw output (unchanged)
-- [ ] Verify: `CommandRunner` interface unchanged (REQ-123)
+- [x] Verify: `syncd upgrade --yes` shows progress lines (not raw brew output)
+- [x] Verify: `syncd upgrade --yes --verbose` streams raw output (unchanged)
+- [x] Verify: `CommandRunner` interface unchanged (REQ-123)
 
 ### 3.2 Integration tests
 > REQ-108, REQ-109, REQ-111, REQ-112, REQ-121, REQ-124 | Design: Integration Tests
 
-- [ ] Extend fake brew script to support `upgrade` subcommand
+- [x] Extend fake brew script to support `upgrade` subcommand
   - Print phase-like lines: "Downloading...", "Pouring...", etc.
-  - Support `$FAKE_BREW_UPGRADE_FAIL` env to simulate failure with "Error:" output
-- [ ] Add integration test: upgrade shows `✓` on success (no raw brew output)
-- [ ] Add integration test: upgrade shows `✗` + error summary on failure
-- [ ] Add integration test: verbose mode streams raw output
-- [ ] Verify: `make test && make integration-test` passes (all existing tests green)
+  - Support `$FAKE_BREW_UPGRADE_HANG` env to simulate failure with "Error:" output
+- [x] Add integration test: upgrade shows `✓` on success (no raw brew output)
+- [x] Add integration test: upgrade shows `✗` + error summary on failure
+- [x] Add integration test: verbose mode streams raw output
+- [x] Verify: `make test && make integration-test` passes (all existing tests green)
 
 **Estimate:** ~1.5 hours
 

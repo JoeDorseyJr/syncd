@@ -135,16 +135,22 @@ case "$1" in
     ;;
   upgrade)
     if [[ "$2" == "--cask" ]]; then
-      if [[ "$3" == *"fail"* ]]; then
-        echo "Error: upgrade failed for $3" >&2
-        exit 1
-      fi
+      PKG="$3"
     else
-      if [[ "$2" == *"fail"* ]]; then
-        echo "Error: upgrade failed for $2" >&2
-        exit 1
-      fi
+      PKG="$2"
     fi
+    if [ -n "$FAKE_BREW_UPGRADE_HANG" ]; then
+      sleep 999999
+      exit 1
+    fi
+    if [[ "$PKG" == *"fail"* ]]; then
+      echo "Downloading $PKG..."
+      echo "Error: upgrade failed for $PKG" >&2
+      exit 1
+    fi
+    echo "Downloading $PKG..."
+    echo "Pouring ${PKG}--2.0.0"
+    echo "Installing $PKG"
     ;;
   --version)
     echo "Homebrew 4.0.0 (fake)"
@@ -723,6 +729,51 @@ func TestUpgrade_VerboseShowsOutput(t *testing.T) {
 	out, _ := runSyncdExpect(t, stateDir, 0, "upgrade", "--yes", "--verbose")
 	if !strings.Contains(out, "Upgrading") {
 		t.Errorf("expected 'Upgrading' in verbose output, got: %s", out)
+	}
+}
+
+func TestUpgrade_ProgressShowsCheckOnSuccess(t *testing.T) {
+	stateDir := setupFakeState(t, nil, []string{"node", "wget"}, nil)
+	setOutdated(t, stateDir, []string{"node", "wget"}, nil)
+
+	out, _ := runSyncdExpect(t, stateDir, 0, "upgrade", "--yes")
+	if !strings.Contains(out, "✓") {
+		t.Errorf("expected ✓ in progress output, got: %s", out)
+	}
+	if !strings.Contains(out, "node") {
+		t.Errorf("expected package name in output, got: %s", out)
+	}
+}
+
+func TestUpgrade_ProgressShowsXOnFailure(t *testing.T) {
+	stateDir := setupFakeState(t, nil, []string{"fail-pkg", "wget"}, nil)
+	setOutdated(t, stateDir, []string{"fail-pkg", "wget"}, nil)
+
+	out, _ := runSyncdExpect(t, stateDir, 1, "upgrade", "--yes")
+	if !strings.Contains(out, "✗") {
+		t.Errorf("expected ✗ in progress output, got: %s", out)
+	}
+	if !strings.Contains(out, "fail-pkg") {
+		t.Errorf("expected failed package name in output, got: %s", out)
+	}
+	// Should contain error context
+	if !strings.Contains(out, "Error") && !strings.Contains(out, "error") {
+		t.Errorf("expected error summary in output, got: %s", out)
+	}
+	// wget should still succeed
+	if !strings.Contains(out, "✓") {
+		t.Errorf("expected ✓ for successful package, got: %s", out)
+	}
+}
+
+func TestUpgrade_VerboseStreamsRawOutput(t *testing.T) {
+	stateDir := setupFakeState(t, nil, []string{"node"}, nil)
+	setOutdated(t, stateDir, []string{"node"}, nil)
+
+	out, _ := runSyncdExpect(t, stateDir, 0, "upgrade", "--yes", "--verbose")
+	// Verbose mode should show raw brew output (phase lines from fake brew)
+	if !strings.Contains(out, "Downloading") {
+		t.Errorf("expected raw brew output 'Downloading' in verbose mode, got: %s", out)
 	}
 }
 

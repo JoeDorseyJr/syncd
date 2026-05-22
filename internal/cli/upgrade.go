@@ -8,6 +8,7 @@ import (
 
 	"github.com/joedorseyjr/syncd/internal/brew"
 	"github.com/joedorseyjr/syncd/internal/config"
+	"github.com/joedorseyjr/syncd/internal/progress"
 	"github.com/joedorseyjr/syncd/internal/runner"
 	"github.com/spf13/cobra"
 )
@@ -98,26 +99,66 @@ func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 			fmt.Printf("\nUpgrading (%d packages)...\n", len(brewNames)+len(caskNames))
 			var results []brew.Result
 			total := len(brewNames) + len(caskNames)
-			for i, name := range brewNames {
-				fmt.Printf("  [%d/%d] %s\n", i+1, total, name)
-				_, err := r.RunMutate("brew", "upgrade", name)
-				res := brew.Result{Action: "upgrade", Package: name, Err: err}
-				results = append(results, res)
-				if err != nil {
-					fmt.Printf("  %s✗%s %s\n", Red, Reset, name)
-				} else {
-					fmt.Printf("  %s✓%s %s\n", Green, Reset, name)
+
+			if runner.Verbose {
+				for i, name := range brewNames {
+					fmt.Printf("  [%d/%d] %s\n", i+1, total, name)
+					_, err := r.RunMutate("brew", "upgrade", name)
+					res := brew.Result{Action: "upgrade", Package: name, Err: err}
+					results = append(results, res)
+					if err != nil {
+						fmt.Printf("  %s✗%s %s\n", Red, Reset, name)
+					} else {
+						fmt.Printf("  %s✓%s %s\n", Green, Reset, name)
+					}
 				}
-			}
-			for i, name := range caskNames {
-				fmt.Printf("  [%d/%d] %s\n", len(brewNames)+i+1, total, name)
-				_, err := r.RunMutate("brew", "upgrade", "--cask", name)
-				res := brew.Result{Action: "upgrade-cask", Package: name, Err: err}
-				results = append(results, res)
-				if err != nil {
-					fmt.Printf("  %s✗%s %s\n", Red, Reset, name)
-				} else {
-					fmt.Printf("  %s✓%s %s\n", Green, Reset, name)
+				for i, name := range caskNames {
+					fmt.Printf("  [%d/%d] %s\n", len(brewNames)+i+1, total, name)
+					_, err := r.RunMutate("brew", "upgrade", "--cask", name)
+					res := brew.Result{Action: "upgrade-cask", Package: name, Err: err}
+					results = append(results, res)
+					if err != nil {
+						fmt.Printf("  %s✗%s %s\n", Red, Reset, name)
+					} else {
+						fmt.Printf("  %s✓%s %s\n", Green, Reset, name)
+					}
+				}
+			} else {
+				display := progress.NewDisplay()
+				starter := &progress.ExecStarter{}
+				for i, name := range brewNames {
+					idx := i + 1
+					result := progress.RunWithProgress(starter, "brew", []string{"upgrade", name}, progress.DefaultHangTimeout, func(phase string) {
+						display.Status("  [%d/%d] %s: %s", idx, total, name, phase)
+					})
+					res := brew.Result{Action: "upgrade", Package: name, Err: result.Err}
+					results = append(results, res)
+					if result.Err != nil {
+						errMsg := progress.ExtractError(result.Output)
+						if result.Hung {
+							errMsg = "timed out"
+						}
+						display.Finish("  %s✗%s %s: %s", Red, Reset, name, errMsg)
+					} else {
+						display.Finish("  %s✓%s %s", Green, Reset, name)
+					}
+				}
+				for i, name := range caskNames {
+					idx := len(brewNames) + i + 1
+					result := progress.RunWithProgress(starter, "brew", []string{"upgrade", "--cask", name}, progress.DefaultHangTimeout, func(phase string) {
+						display.Status("  [%d/%d] %s: %s", idx, total, name, phase)
+					})
+					res := brew.Result{Action: "upgrade-cask", Package: name, Err: result.Err}
+					results = append(results, res)
+					if result.Err != nil {
+						errMsg := progress.ExtractError(result.Output)
+						if result.Hung {
+							errMsg = "timed out"
+						}
+						display.Finish("  %s✗%s %s: %s", Red, Reset, name, errMsg)
+					} else {
+						display.Finish("  %s✓%s %s", Green, Reset, name)
+					}
 				}
 			}
 
