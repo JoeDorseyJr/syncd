@@ -169,8 +169,13 @@ func TestDownloadDisplay_MarkDone(t *testing.T) {
 	dd.UpdateProgress("pkg1", 100, 1000)
 	dd.MarkDone("pkg1", nil)
 
-	if !dd.slots[0].Done {
-		t.Fatal("slot 0 should be done")
+	// Slot should be cleared after marking done
+	if dd.slots[0].Name != "" {
+		t.Fatal("slot 0 should be cleared after MarkDone")
+	}
+	// Item should be in pending list
+	if len(dd.pending) != 1 || dd.pending[0].Name != "pkg1" {
+		t.Fatal("expected pkg1 in pending")
 	}
 }
 
@@ -179,14 +184,10 @@ func TestDownloadDisplay_SlotTransition(t *testing.T) {
 	dd.UpdateProgress("pkg1", 100, 1000)
 	dd.MarkDone("pkg1", nil)
 
-	// After marking done, a new package should be able to take a free slot
-	// Since done slots are still occupied, UpdateProgress won't find a free slot
-	// unless we clear done slots. In practice, the display shows done state
-	// and the next render cycle shows it. The slot is "occupied" until cleared.
-	// For the display to work with more packages than slots, we need to
-	// allow new packages to take done slots.
-	if !dd.slots[0].Done {
-		t.Fatal("slot 0 should be done")
+	// Slot is freed immediately, so a new package can take it
+	dd.UpdateProgress("pkg2", 50, 500)
+	if dd.slots[0].Name != "pkg2" {
+		t.Fatalf("slot 0 should be pkg2, got %s", dd.slots[0].Name)
 	}
 }
 

@@ -166,19 +166,13 @@ func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 				}
 			} else {
 				display := progress.NewDisplay()
-				starter := &progress.ExecStarter{}
 				for i, name := range brewNames {
 					idx := i + 1
-					result := progress.RunWithProgress(starter, "brew", []string{"upgrade", name}, progress.DefaultHangTimeout, func(phase string) {
-						display.Status("  [%d/%d] %s: %s", idx, total, name, phase)
-					})
-					res := brew.Result{Action: "upgrade", Package: name, Err: result.Err}
+					output, err := runWithSpinner(r, display, idx, total, name, "brew", "upgrade", name)
+					res := brew.Result{Action: "upgrade", Package: name, Err: err}
 					results = append(results, res)
-					if result.Err != nil {
-						errMsg := progress.ExtractError(result.Output)
-						if result.Hung {
-							errMsg = "timed out"
-						}
+					if err != nil {
+						errMsg := progress.ExtractError(output)
 						display.Finish("  %s✗%s %s: %s", Red, Reset, name, errMsg)
 					} else {
 						display.Finish("  %s✓%s %s", Green, Reset, name)
@@ -186,16 +180,11 @@ func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 				}
 				for i, name := range caskNames {
 					idx := len(brewNames) + i + 1
-					result := progress.RunWithProgress(starter, "brew", []string{"upgrade", "--cask", name}, progress.DefaultHangTimeout, func(phase string) {
-						display.Status("  [%d/%d] %s: %s", idx, total, name, phase)
-					})
-					res := brew.Result{Action: "upgrade-cask", Package: name, Err: result.Err}
+					output, err := runWithSpinner(r, display, idx, total, name, "brew", "upgrade", "--cask", name)
+					res := brew.Result{Action: "upgrade-cask", Package: name, Err: err}
 					results = append(results, res)
-					if result.Err != nil {
-						errMsg := progress.ExtractError(result.Output)
-						if result.Hung {
-							errMsg = "timed out"
-						}
+					if err != nil {
+						errMsg := progress.ExtractError(output)
 						display.Finish("  %s✗%s %s: %s", Red, Reset, name, errMsg)
 					} else {
 						display.Finish("  %s✓%s %s", Green, Reset, name)
@@ -311,4 +300,26 @@ func filterPinned(items []string, pinned map[string]struct{}) []string {
 		}
 	}
 	return result
+}
+
+var spinnerFrames = []rune{'⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'}
+
+// runWithSpinner runs a command while showing a spinner, returns captured output and error.
+func runWithSpinner(r runner.CommandRunner, display *progress.Display, idx, total int, name, cmd string, args ...string) ([]byte, error) {
+	done := make(chan struct{})
+	go func() {
+		i := 0
+		for {
+			select {
+			case <-done:
+				return
+			case <-time.After(100 * time.Millisecond):
+				display.Status("  [%d/%d] %s %c", idx, total, name, spinnerFrames[i%len(spinnerFrames)])
+				i++
+			}
+		}
+	}()
+	output, err := r.Run(cmd, args...)
+	close(done)
+	return output, err
 }

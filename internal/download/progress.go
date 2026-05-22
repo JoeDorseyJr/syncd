@@ -51,6 +51,7 @@ type DownloadDisplay struct {
 	isTTY    bool
 	rendered bool
 	stopped  int32
+	pending  []SlotState // completed items waiting to be printed permanently
 }
 
 // NewDownloadDisplay creates a display with the given number of slots.
@@ -66,7 +67,7 @@ func (d *DownloadDisplay) UpdateProgress(name string, downloaded, total int64) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	for i := range d.slots {
-		if d.slots[i].Name == name && !d.slots[i].Done {
+		if d.slots[i].Name == name {
 			d.slots[i].Downloaded = downloaded
 			d.slots[i].Total = total
 			return
@@ -75,13 +76,6 @@ func (d *DownloadDisplay) UpdateProgress(name string, downloaded, total int64) {
 	// Auto-assign to first empty slot
 	for i := range d.slots {
 		if d.slots[i].Name == "" {
-			d.slots[i] = SlotState{Name: name, Downloaded: downloaded, Total: total}
-			return
-		}
-	}
-	// Take over first done slot
-	for i := range d.slots {
-		if d.slots[i].Done {
 			d.slots[i] = SlotState{Name: name, Downloaded: downloaded, Total: total}
 			return
 		}
@@ -98,14 +92,20 @@ func (d *DownloadDisplay) MarkDone(name string, err error) {
 			d.slots[i].Err = err
 			if !d.isTTY {
 				d.printNonTTY(d.slots[i])
+			} else {
+				d.pending = append(d.pending, d.slots[i])
 			}
+			// Free the slot for the next package
+			d.slots[i] = SlotState{}
 			return
 		}
 	}
-	// Not in a slot yet — print directly for non-TTY
+	// Not in a slot yet — print directly
+	s := SlotState{Name: name, Done: true, Err: err}
 	if !d.isTTY {
-		s := SlotState{Name: name, Done: true, Err: err}
 		d.printNonTTY(s)
+	} else {
+		d.pending = append(d.pending, s)
 	}
 }
 
@@ -142,9 +142,14 @@ func (d *DownloadDisplay) Start() func() {
 	return func() {
 		atomic.StoreInt32(&d.stopped, 1)
 		close(done)
-		d.render() // final render
-		// Move past the slots
-		fmt.Println()
+		d.render() // final render to flush pending completions
+		// Clear the active slot lines since we're done
+		if d.rendered {
+			fmt.Fprintf(os.Stdout, "\033[%dA", len(d.slots))
+			for range d.slots {
+				fmt.Fprintf(os.Stdout, "\r\033[K\n")
+			}
+		}
 	}
 }
 
@@ -153,18 +158,40 @@ func (d *DownloadDisplay) render() {
 		return
 	}
 	d.mu.Lock()
-	lines := make([]string, len(d.slots))
-	for i, s := range d.slots {
-		lines[i] = renderSlot(s)
+	// Count active (non-empty) slots for cursor movement
+	activeLines := make([]string, 0, len(d.slots))
+	for _, s := range d.slots {
+		activeLines = append(activeLines, renderSlot(s))
 	}
+	pendingItems := d.pending
+	d.pending = nil
 	d.mu.Unlock()
 
+	// If we previously rendered, move cursor up to overwrite active slot lines
 	if d.rendered {
-		// Move cursor up N lines
-		fmt.Fprintf(os.Stdout, "\033[%dA", len(lines))
+		fmt.Fprintf(os.Stdout, "\033[%dA", len(activeLines))
+		// Clear the active lines
+		for range activeLines {
+			fmt.Fprintf(os.Stdout, "\r\033[K\n")
+		}
+		fmt.Fprintf(os.Stdout, "\033[%dA", len(activeLines))
 	}
-	for _, line := range lines {
-		// Clear line and print
+
+	// Print completed items permanently (these won't be overwritten)
+	for _, s := range pendingItems {
+		if s.Err != nil {
+			fmt.Fprintf(os.Stdout, "  %s✗%s %s: %v\n", dlRed, dlReset, s.Name, s.Err)
+		} else {
+			bytes := s.Downloaded
+			if s.Total > 0 && s.Total > bytes {
+				bytes = s.Total
+			}
+			fmt.Fprintf(os.Stdout, "  %s✓%s %s (%.1f MB)\n", dlGreen, dlReset, s.Name, float64(bytes)/1e6)
+		}
+	}
+
+	// Print active slot lines (these will be overwritten on next render)
+	for _, line := range activeLines {
 		fmt.Fprintf(os.Stdout, "\r\033[K%s\n", line)
 	}
 	d.rendered = true
