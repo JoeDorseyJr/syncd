@@ -43,26 +43,26 @@
 ### 2.1 State reader: ReadValue and ReadType
 > REQ-074, REQ-098, REQ-101, REQ-102, REQ-103 | Design: Defaults State Reader
 
-- [ ] Create `internal/defaults/state.go`
+- [x] Create `internal/defaults/state.go`
   - `ReadValue(runner, domain, key) (string, bool, error)` — runs `defaults read <domain> <key>`
   - `ReadType(runner, domain, key) (string, bool, error)` — runs `defaults read-type <domain> <key>`
   - Handle exit code 1 as "unset" (return "", false, nil)
-- [ ] Add unit tests in `internal/defaults/state_test.go`
+- [x] Add unit tests in `internal/defaults/state_test.go`
   - Test: successful read returns trimmed value
   - Test: command exit 1 returns ("", false, nil)
   - Test: other errors propagate
-- [ ] Verify: `go test ./internal/defaults/...` passes
+- [x] Verify: `go test ./internal/defaults/...` passes
 
 ### 2.2 Type comparison: CompareValue
 > REQ-099, REQ-100 | Design: Type Comparison Logic
 
-- [ ] Create `internal/defaults/compare.go`
+- [x] Create `internal/defaults/compare.go`
   - `CompareValue(rawOutput, configType string, configValue interface{}) bool`
   - Int: compare string representation
   - Float: compare string representation
   - Bool: normalize `1`/`0` from defaults read to `true`/`false`
   - String: direct comparison
-- [ ] Add unit tests in `internal/defaults/compare_test.go`
+- [x] Add unit tests in `internal/defaults/compare_test.go`
   - Test: int 48 matches "48"
   - Test: float 0.5 matches "0.5"
   - Test: bool true matches "1"
@@ -70,21 +70,21 @@
   - Test: string "hello" matches "hello"
   - Test: int 48 does NOT match "49"
   - Test: bool true does NOT match "0"
-- [ ] Verify: `go test ./internal/defaults/...` passes
+- [x] Verify: `go test ./internal/defaults/...` passes
 
 ### 2.3 Drift calculator: ComputeDrift
 > REQ-075, REQ-076, REQ-077 | Design: Drift Calculator
 
-- [ ] Create `internal/defaults/drift.go`
+- [x] Create `internal/defaults/drift.go`
   - `DriftEntry` struct: Domain, Key, Type, Current, Desired, Kill
   - `ComputeDrift(runner, entries) ([]DriftEntry, error)`
   - For each entry: read value, compare, include in result if different or unset
-- [ ] Add unit tests in `internal/defaults/drift_test.go`
+- [x] Add unit tests in `internal/defaults/drift_test.go`
   - Test: drifted value included in result
   - Test: unset key included with Current = "unset"
   - Test: matching value excluded from result
   - Test: multiple entries, mix of drifted and matching
-- [ ] Verify: `go test ./internal/defaults/...` passes
+- [x] Verify: `go test ./internal/defaults/...` passes
 
 **Estimate:** ~1.5 hours
 
