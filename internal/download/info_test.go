@@ -37,6 +37,7 @@ func TestGetFormulaURLs_ParsesBottleURL(t *testing.T) {
 	mock := &runner.MockRunner{
 		Outputs: []runner.MockOutput{
 			{Out: []byte(jsonData)},
+			{Out: []byte("/Users/joe/Library/Caches/Homebrew/downloads/abc123--neovim--0.10.0.bottle.tar.gz\n")},
 		},
 	}
 
@@ -52,6 +53,9 @@ func TestGetFormulaURLs_ParsesBottleURL(t *testing.T) {
 	}
 	if result[0].URL != "https://ghcr.io/neovim-0.10.0.tar.gz" {
 		t.Errorf("unexpected URL: %s", result[0].URL)
+	}
+	if result[0].CachePath != "/Users/joe/Library/Caches/Homebrew/downloads/abc123--neovim--0.10.0.bottle.tar.gz" {
+		t.Errorf("unexpected CachePath: %s", result[0].CachePath)
 	}
 	if result[0].IsCask {
 		t.Error("expected IsCask=false")
@@ -76,6 +80,7 @@ func TestGetFormulaURLs_FallsBackToAll(t *testing.T) {
 	mock := &runner.MockRunner{
 		Outputs: []runner.MockOutput{
 			{Out: []byte(jsonData)},
+			{Out: []byte("/cache/pkg.tar.gz\n")},
 		},
 	}
 
@@ -120,6 +125,7 @@ func TestGetFormulaURLs_MultipleFormulae(t *testing.T) {
 	mock := &runner.MockRunner{
 		Outputs: []runner.MockOutput{
 			{Out: []byte(jsonData)},
+			{Out: []byte("/cache/a.tar.gz\n/cache/b.tar.gz\n")},
 		},
 	}
 
@@ -162,6 +168,7 @@ func TestGetCaskURLs_ParsesURL(t *testing.T) {
 	mock := &runner.MockRunner{
 		Outputs: []runner.MockOutput{
 			{Out: []byte(jsonData)},
+			{Out: []byte("/cache/firefox.dmg\n")},
 		},
 	}
 
@@ -177,6 +184,9 @@ func TestGetCaskURLs_ParsesURL(t *testing.T) {
 	}
 	if result[0].URL != "https://cdn.mozilla.net/firefox-126.0.dmg" {
 		t.Errorf("unexpected URL: %s", result[0].URL)
+	}
+	if result[0].CachePath != "/cache/firefox.dmg" {
+		t.Errorf("unexpected CachePath: %s", result[0].CachePath)
 	}
 	if !result[0].IsCask {
 		t.Error("expected IsCask=true")
@@ -194,6 +204,7 @@ func TestGetCaskURLs_MultipleCasks(t *testing.T) {
 	mock := &runner.MockRunner{
 		Outputs: []runner.MockOutput{
 			{Out: []byte(jsonData)},
+			{Out: []byte("/cache/a.dmg\n/cache/b.pkg\n")},
 		},
 	}
 

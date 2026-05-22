@@ -29,3 +29,21 @@
 - `internal/progress` package: phase detection, hang timeout (60s), single retry, `\r` display, error extraction
 - Integrated into upgrade command; verbose bypasses to raw output; non-TTY falls back to line-per-phase
 - All tests green: 99 unit + 52 integration tests pass (REQ-108–127)
+
+---
+
+## Parallel Pre-Download
+
+### Phases 1–3 — 2026-05-22
+- `internal/download` package: platform detection, `brew info --json=v2` URL extraction, SHA256 cache naming, parallel HTTP with semaphore pool
+- Atomic `.downloading` → rename placement; non-fatal failures; `--concurrency` flag (default 4); verbose skips pre-download
+- All tests green: unit + integration pass with no regressions (REQ-128–156)
+
+---
+
+## Download Progress Bars
+
+### Phases 1–3 — 2026-05-22
+- `ProgressWriter` + `DownloadDisplay` in `internal/download/progress.go`: per-file bars (█/░), slot-based multi-line renderer with 100ms ANSI cursor-up redraw
+- Integrated into upgrade command via `OnProgress` callback; non-TTY falls back to one line per completion
+- All tests green: no regressions across unit + 52 integration tests (REQ-157–176)

@@ -20,8 +20,8 @@ type Result struct {
 // Options configures the parallel download.
 type Options struct {
 	Concurrency int
-	CacheDir    string
-	OnComplete  func(Result)                          // called after each download completes (optional)
+	CacheDir    string                                     // used as fallback when CachePath is empty
+	OnComplete  func(Result)                               // called after each download completes (optional)
 	OnProgress  func(name string, downloaded, total int64) // called during download with byte counts (optional)
 }
 
@@ -41,7 +41,10 @@ func PreDownload(packages []PackageURL, opts Options) []Result {
 
 	for i, pkg := range packages {
 		results[i].Package = pkg
-		dest := filepath.Join(opts.CacheDir, pkg.Filename)
+		dest := pkg.CachePath
+		if dest == "" {
+			dest = filepath.Join(opts.CacheDir, pkg.Filename)
+		}
 
 		// Skip if already cached
 		if info, err := os.Stat(dest); err == nil && info.Size() > 0 {

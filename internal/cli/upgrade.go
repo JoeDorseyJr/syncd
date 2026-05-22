@@ -104,34 +104,30 @@ func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 				if dlConcurrency < 1 {
 					dlConcurrency = 1
 				}
-				cacheDir, err := download.CacheDir(r)
-				if err == nil {
-					platform := download.Platform(r)
-					urls := download.GetFormulaURLs(r, brewNames, platform)
-					caskURLs := download.GetCaskURLs(r, caskNames)
-					urls = append(urls, caskURLs...)
+				platform := download.Platform(r)
+				urls := download.GetFormulaURLs(r, brewNames, platform)
+				caskURLs := download.GetCaskURLs(r, caskNames)
+				urls = append(urls, caskURLs...)
 
-					if len(urls) > 0 {
-						dd := download.NewDownloadDisplay(dlConcurrency)
-						stop := dd.Start()
+				if len(urls) > 0 {
+					dd := download.NewDownloadDisplay(dlConcurrency)
+					stop := dd.Start()
 
-						results := download.PreDownload(urls, download.Options{
-							Concurrency: dlConcurrency,
-							CacheDir:    cacheDir,
-							OnProgress: func(name string, downloaded, total int64) {
-								dd.UpdateProgress(name, downloaded, total)
-							},
-							OnComplete: func(res download.Result) {
-								dd.MarkDone(res.Package.Name, res.Err)
-							},
-						})
+					results := download.PreDownload(urls, download.Options{
+						Concurrency: dlConcurrency,
+						OnProgress: func(name string, downloaded, total int64) {
+							dd.UpdateProgress(name, downloaded, total)
+						},
+						OnComplete: func(res download.Result) {
+							dd.MarkDone(res.Package.Name, res.Err)
+						},
+					})
 
-						stop()
+					stop()
 
-						for _, res := range results {
-							if res.Err != nil {
-								fmt.Printf("  ⚠ %s: %v\n", res.Package.Name, res.Err)
-							}
+					for _, res := range results {
+						if res.Err != nil {
+							fmt.Printf("  ⚠ %s: %v\n", res.Package.Name, res.Err)
 						}
 					}
 				}

@@ -17,9 +17,10 @@ func TestPreDownload_Success(t *testing.T) {
 	defer srv.Close()
 
 	dir := t.TempDir()
-	pkgs := []PackageURL{{Name: "test", Version: "1.0", URL: srv.URL + "/test.tar.gz", Filename: "abc--test--1.0.bottle.tar.gz"}}
+	dest := filepath.Join(dir, "abc--test--1.0.bottle.tar.gz")
+	pkgs := []PackageURL{{Name: "test", Version: "1.0", URL: srv.URL + "/test.tar.gz", CachePath: dest}}
 
-	results := PreDownload(pkgs, Options{Concurrency: 4, CacheDir: dir})
+	results := PreDownload(pkgs, Options{Concurrency: 4})
 
 	if len(results) != 1 {
 		t.Fatalf("expected 1 result, got %d", len(results))
@@ -34,8 +35,7 @@ func TestPreDownload_Success(t *testing.T) {
 		t.Fatalf("expected 17 bytes, got %d", results[0].Bytes)
 	}
 
-	// Verify file exists at final path
-	data, err := os.ReadFile(filepath.Join(dir, "abc--test--1.0.bottle.tar.gz"))
+	data, err := os.ReadFile(dest)
 	if err != nil {
 		t.Fatalf("file not found: %v", err)
 	}
@@ -46,17 +46,16 @@ func TestPreDownload_Success(t *testing.T) {
 
 func TestPreDownload_AlreadyCached(t *testing.T) {
 	dir := t.TempDir()
-	filename := "abc--cached--1.0.bottle.tar.gz"
-	os.WriteFile(filepath.Join(dir, filename), []byte("cached"), 0644)
+	dest := filepath.Join(dir, "abc--cached--1.0.bottle.tar.gz")
+	os.WriteFile(dest, []byte("cached"), 0644)
 
-	// Server should NOT be hit
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("server should not be called for cached file")
 	}))
 	defer srv.Close()
 
-	pkgs := []PackageURL{{Name: "cached", Version: "1.0", URL: srv.URL + "/x", Filename: filename}}
-	results := PreDownload(pkgs, Options{Concurrency: 4, CacheDir: dir})
+	pkgs := []PackageURL{{Name: "cached", Version: "1.0", URL: srv.URL + "/x", CachePath: dest}}
+	results := PreDownload(pkgs, Options{Concurrency: 4})
 
 	if !results[0].Cached {
 		t.Fatal("expected Cached=true")
@@ -73,19 +72,18 @@ func TestPreDownload_FailureCleansUp(t *testing.T) {
 	defer srv.Close()
 
 	dir := t.TempDir()
-	pkgs := []PackageURL{{Name: "bad", Version: "1.0", URL: srv.URL + "/missing", Filename: "abc--bad--1.0.bottle.tar.gz"}}
+	dest := filepath.Join(dir, "abc--bad--1.0.bottle.tar.gz")
+	pkgs := []PackageURL{{Name: "bad", Version: "1.0", URL: srv.URL + "/missing", CachePath: dest}}
 
-	results := PreDownload(pkgs, Options{Concurrency: 4, CacheDir: dir})
+	results := PreDownload(pkgs, Options{Concurrency: 4})
 
 	if results[0].Err == nil {
 		t.Fatal("expected error for 404")
 	}
-	// .downloading file should not exist
-	if _, err := os.Stat(filepath.Join(dir, "abc--bad--1.0.bottle.tar.gz.downloading")); !os.IsNotExist(err) {
+	if _, err := os.Stat(dest + ".downloading"); !os.IsNotExist(err) {
 		t.Fatal(".downloading file should be cleaned up")
 	}
-	// Final file should not exist
-	if _, err := os.Stat(filepath.Join(dir, "abc--bad--1.0.bottle.tar.gz")); !os.IsNotExist(err) {
+	if _, err := os.Stat(dest); !os.IsNotExist(err) {
 		t.Fatal("final file should not exist on failure")
 	}
 }
@@ -102,14 +100,15 @@ func TestPreDownload_RedirectFollowed(t *testing.T) {
 	defer redirect.Close()
 
 	dir := t.TempDir()
-	pkgs := []PackageURL{{Name: "redir", Version: "2.0", URL: redirect.URL + "/start", Filename: "abc--redir--2.0.bottle.tar.gz"}}
+	dest := filepath.Join(dir, "abc--redir--2.0.bottle.tar.gz")
+	pkgs := []PackageURL{{Name: "redir", Version: "2.0", URL: redirect.URL + "/start", CachePath: dest}}
 
-	results := PreDownload(pkgs, Options{Concurrency: 4, CacheDir: dir})
+	results := PreDownload(pkgs, Options{Concurrency: 4})
 
 	if results[0].Err != nil {
 		t.Fatalf("unexpected error: %v", results[0].Err)
 	}
-	data, _ := os.ReadFile(filepath.Join(dir, "abc--redir--2.0.bottle.tar.gz"))
+	data, _ := os.ReadFile(dest)
 	if string(data) != "redirected-content" {
 		t.Fatalf("unexpected content: %s", data)
 	}
@@ -140,14 +139,14 @@ func TestPreDownload_ConcurrencyLimit(t *testing.T) {
 	var pkgs []PackageURL
 	for i := 0; i < 8; i++ {
 		pkgs = append(pkgs, PackageURL{
-			Name:     "pkg",
-			Version:  "1.0",
-			URL:      srv.URL + "/" + string(rune('a'+i)),
-			Filename: "file-" + string(rune('a'+i)) + ".tar.gz",
+			Name:      "pkg",
+			Version:   "1.0",
+			URL:       srv.URL + "/" + string(rune('a'+i)),
+			CachePath: filepath.Join(dir, "file-"+string(rune('a'+i))+".tar.gz"),
 		})
 	}
 
-	results := PreDownload(pkgs, Options{Concurrency: 2, CacheDir: dir})
+	results := PreDownload(pkgs, Options{Concurrency: 2})
 
 	for _, r := range results {
 		if r.Err != nil {
@@ -171,12 +170,12 @@ func TestPreDownload_MixedSuccessAndFailure(t *testing.T) {
 
 	dir := t.TempDir()
 	pkgs := []PackageURL{
-		{Name: "good", Version: "1.0", URL: srv.URL + "/good", Filename: "good.tar.gz"},
-		{Name: "bad", Version: "1.0", URL: srv.URL + "/fail", Filename: "bad.tar.gz"},
-		{Name: "good2", Version: "1.0", URL: srv.URL + "/good2", Filename: "good2.tar.gz"},
+		{Name: "good", Version: "1.0", URL: srv.URL + "/good", CachePath: filepath.Join(dir, "good.tar.gz")},
+		{Name: "bad", Version: "1.0", URL: srv.URL + "/fail", CachePath: filepath.Join(dir, "bad.tar.gz")},
+		{Name: "good2", Version: "1.0", URL: srv.URL + "/good2", CachePath: filepath.Join(dir, "good2.tar.gz")},
 	}
 
-	results := PreDownload(pkgs, Options{Concurrency: 4, CacheDir: dir})
+	results := PreDownload(pkgs, Options{Concurrency: 4})
 
 	if results[0].Err != nil {
 		t.Fatalf("expected success for good: %v", results[0].Err)
@@ -188,7 +187,6 @@ func TestPreDownload_MixedSuccessAndFailure(t *testing.T) {
 		t.Fatalf("expected success for good2: %v", results[2].Err)
 	}
 
-	// Good files exist, bad doesn't
 	if _, err := os.Stat(filepath.Join(dir, "good.tar.gz")); err != nil {
 		t.Fatal("good.tar.gz should exist")
 	}
@@ -204,10 +202,10 @@ func TestPreDownload_ZeroConcurrency(t *testing.T) {
 	defer srv.Close()
 
 	dir := t.TempDir()
-	pkgs := []PackageURL{{Name: "test", Version: "1.0", URL: srv.URL + "/x", Filename: "test.tar.gz"}}
+	dest := filepath.Join(dir, "test.tar.gz")
+	pkgs := []PackageURL{{Name: "test", Version: "1.0", URL: srv.URL + "/x", CachePath: dest}}
 
-	// Concurrency 0 should be clamped to 1, not panic
-	results := PreDownload(pkgs, Options{Concurrency: 0, CacheDir: dir})
+	results := PreDownload(pkgs, Options{Concurrency: 0})
 
 	if results[0].Err != nil {
 		t.Fatalf("unexpected error: %v", results[0].Err)
