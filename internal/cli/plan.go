@@ -6,7 +6,9 @@ import (
 
 	"github.com/joedorseyjr/syncd/internal/brew"
 	"github.com/joedorseyjr/syncd/internal/config"
+	"github.com/joedorseyjr/syncd/internal/defaults"
 	"github.com/joedorseyjr/syncd/internal/plan"
+	"github.com/joedorseyjr/syncd/internal/runner"
 	"github.com/spf13/cobra"
 )
 
@@ -24,13 +26,13 @@ func NewPlanCmd(cfgFile *string) *cobra.Command {
 				return err
 			}
 
-			runner := &brew.ExecRunner{}
-			state, err := brew.GetState(runner)
+			r := &runner.ExecRunner{}
+			state, err := brew.GetState(r)
 			if err != nil {
 				return fmt.Errorf("querying Homebrew state: %w", err)
 			}
 
-			leaves, err := brew.GetLeaves(runner)
+			leaves, err := brew.GetLeaves(r)
 			if err != nil {
 				return fmt.Errorf("querying Homebrew leaves: %w", err)
 			}
@@ -41,20 +43,42 @@ func NewPlanCmd(cfgFile *string) *cobra.Command {
 				Leaves: leaves,
 				Casks:  state.Casks,
 			})
-			if p.IsEmpty() {
+
+			var drifted []defaults.DriftEntry
+			if len(cfg.Defaults) > 0 {
+				drifted, err = defaults.ComputeDrift(r, cfg.Defaults)
+				if err != nil {
+					return fmt.Errorf("computing defaults drift: %w", err)
+				}
+			}
+
+			if p.IsEmpty() && len(drifted) == 0 {
 				fmt.Println("Already in sync. No changes needed.")
 				return nil
 			}
 
 			printPlan(p)
+			printDefaultsDrift(drifted)
 
-			// Exit 2 only when there are package changes (drift).
-			// Cleanup-only plans (autoremove/clear_cache) are maintenance, not drift.
-			if p.HasChanges() {
+			if p.HasChanges() || len(drifted) > 0 {
 				os.Exit(2)
 			}
 			return nil
 		},
+	}
+}
+
+func printDefaultsDrift(drifted []defaults.DriftEntry) {
+	if len(drifted) == 0 {
+		return
+	}
+	fmt.Printf("\nDefaults drift:\n")
+	for _, d := range drifted {
+		if d.Current == "unset" {
+			fmt.Printf("  %s+%s %s %s: unset → %s\n", Green, Reset, d.Domain, d.Key, d.Desired)
+		} else {
+			fmt.Printf("  %s~%s %s %s: %s → %s\n", Yellow, Reset, d.Domain, d.Key, d.Current, d.Desired)
+		}
 	}
 }
 

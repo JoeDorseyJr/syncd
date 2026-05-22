@@ -16,6 +16,7 @@ import (
 
 var binary string
 var fakeBrew string
+var fakeDir string
 
 func TestMain(m *testing.M) {
 	if os.Getenv("SYNCD_INTEGRATION") != "1" {
@@ -27,6 +28,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
+	fakeDir = dir
 
 	// Build syncd binary
 	binary = filepath.Join(dir, "syncd")
@@ -39,6 +41,11 @@ func TestMain(m *testing.M) {
 	fakeBrew = filepath.Join(dir, "brew")
 	if err := createFakeBrew(fakeBrew); err != nil {
 		panic("creating fake brew: " + err.Error())
+	}
+
+	// Create fake defaults script
+	if err := createFakeDefaults(filepath.Join(dir, "defaults")); err != nil {
+		panic("creating fake defaults: " + err.Error())
 	}
 
 	code := m.Run()
@@ -755,4 +762,187 @@ func readFakeState(t *testing.T, stateDir, file string) string {
 		return ""
 	}
 	return string(data)
+}
+
+func createFakeDefaults(path string) error {
+	script := `#!/bin/bash
+STATE_DIR="${FAKE_DEFAULTS_STATE:-/tmp/fake-defaults-state}"
+mkdir -p "$STATE_DIR"
+
+case "$1" in
+  read-type)
+    FILE="$STATE_DIR/${2}__${3}.type"
+    if [ ! -f "$FILE" ]; then
+      echo "The domain/default pair of (${2}, ${3}) does not exist" >&2
+      exit 1
+    fi
+    cat "$FILE"
+    ;;
+  read)
+    FILE="$STATE_DIR/${2}__${3}"
+    if [ ! -f "$FILE" ]; then
+      echo "The domain/default pair of (${2}, ${3}) does not exist" >&2
+      exit 1
+    fi
+    cat "$FILE"
+    ;;
+  write)
+    DOMAIN="$2"
+    KEY="$3"
+    # $4 is -<type>, $5 is value
+    TYPE="${4#-}"
+    VALUE="$5"
+    echo -n "$VALUE" > "$STATE_DIR/${DOMAIN}__${KEY}"
+    echo -n "$TYPE" > "$STATE_DIR/${DOMAIN}__${KEY}.type"
+    ;;
+  *)
+    echo "fake defaults: unknown command $1" >&2
+    exit 1
+    ;;
+esac
+`
+	return os.WriteFile(path, []byte(script), 0755)
+}
+
+func setupFakeDefaultsState(t *testing.T, entries map[string]string) string {
+	t.Helper()
+	dir := t.TempDir()
+	for key, val := range entries {
+		os.WriteFile(filepath.Join(dir, key), []byte(val), 0644)
+	}
+	return dir
+}
+
+func runSyncdWithDefaults(t *testing.T, brewStateDir, defaultsStateDir string, wantExit int, args ...string) (string, int) {
+	t.Helper()
+	cmd := exec.Command(binary, args...)
+	cmd.Env = append(os.Environ(),
+		"PATH="+fakeDir+":"+os.Getenv("PATH"),
+		"FAKE_BREW_STATE="+brewStateDir,
+		"FAKE_DEFAULTS_STATE="+defaultsStateDir,
+	)
+	out, err := cmd.CombinedOutput()
+	code := 0
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			code = exitErr.ExitCode()
+		} else {
+			t.Fatalf("failed to run syncd: %v", err)
+		}
+	}
+	if code != wantExit {
+		t.Errorf("expected exit %d, got %d\noutput: %s", wantExit, code, string(out))
+	}
+	return string(out), code
+}
+
+func TestPlan_DefaultsDriftChangedValue(t *testing.T) {
+	brewState := setupFakeState(t, nil, []string{"git"}, nil)
+	defaultsState := setupFakeDefaultsState(t, map[string]string{
+		"com.apple.dock__tilesize": "64",
+	})
+	cfg := writeConfig(t, `
+brews:
+  - git
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+    value: 48
+`)
+	out, _ := runSyncdWithDefaults(t, brewState, defaultsState, 2, "plan", "--config", cfg)
+	if !strings.Contains(out, "com.apple.dock tilesize") {
+		t.Errorf("expected drift for com.apple.dock tilesize, got: %s", out)
+	}
+	if !strings.Contains(out, "64") || !strings.Contains(out, "48") {
+		t.Errorf("expected current→desired values, got: %s", out)
+	}
+}
+
+func TestPlan_DefaultsDriftUnsetKey(t *testing.T) {
+	brewState := setupFakeState(t, nil, []string{"git"}, nil)
+	defaultsState := setupFakeDefaultsState(t, nil)
+	cfg := writeConfig(t, `
+brews:
+  - git
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+    value: 48
+`)
+	out, _ := runSyncdWithDefaults(t, brewState, defaultsState, 2, "plan", "--config", cfg)
+	if !strings.Contains(out, "unset") {
+		t.Errorf("expected 'unset' for missing key, got: %s", out)
+	}
+	if !strings.Contains(out, "48") {
+		t.Errorf("expected desired value 48, got: %s", out)
+	}
+}
+
+func TestPlan_DefaultsMatchingHidden(t *testing.T) {
+	brewState := setupFakeState(t, nil, []string{"git"}, nil)
+	defaultsState := setupFakeDefaultsState(t, map[string]string{
+		"com.apple.dock__tilesize": "48",
+	})
+	cfg := writeConfig(t, `
+brews:
+  - git
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+    value: 48
+`)
+	out, _ := runSyncdWithDefaults(t, brewState, defaultsState, 0, "plan", "--config", cfg)
+	if strings.Contains(out, "tilesize") {
+		t.Errorf("matching default should not appear in output, got: %s", out)
+	}
+}
+
+func TestPlan_DefaultsDriftOnlyExitTwo(t *testing.T) {
+	brewState := setupFakeState(t, nil, []string{"git"}, nil)
+	defaultsState := setupFakeDefaultsState(t, map[string]string{
+		"com.apple.dock__tilesize": "64",
+	})
+	cfg := writeConfig(t, `
+brews:
+  - git
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+    value: 48
+`)
+	// Brew is in sync, only defaults drift → exit 2
+	_, code := runSyncdWithDefaults(t, brewState, defaultsState, 2, "plan", "--config", cfg)
+	if code != 2 {
+		t.Errorf("expected exit 2 with only defaults drift, got %d", code)
+	}
+}
+
+func TestPlan_DefaultsReadOnly(t *testing.T) {
+	brewState := setupFakeState(t, nil, []string{"git"}, nil)
+	defaultsState := setupFakeDefaultsState(t, map[string]string{
+		"com.apple.dock__tilesize": "64",
+	})
+	cfg := writeConfig(t, `
+brews:
+  - git
+defaults:
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+    value: 48
+`)
+	runSyncdWithDefaults(t, brewState, defaultsState, 2, "plan", "--config", cfg)
+
+	// Verify defaults state was not modified (no write happened)
+	data, err := os.ReadFile(filepath.Join(defaultsState, "com.apple.dock__tilesize"))
+	if err != nil {
+		t.Fatalf("state file should still exist: %v", err)
+	}
+	if string(data) != "64" {
+		t.Errorf("plan should not modify defaults state, got: %s", string(data))
+	}
 }

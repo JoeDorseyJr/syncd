@@ -95,29 +95,29 @@
 ### 3.1 Plan command: show defaults drift
 > REQ-074, REQ-075, REQ-076, REQ-077, REQ-078, REQ-079, REQ-080 | Design: CLI Changes — Plan
 
-- [ ] Update `NewPlanCmd` in `internal/cli/plan.go`
+- [x] Update `NewPlanCmd` in `internal/cli/plan.go`
   - After brew plan, compute defaults drift if `cfg.Defaults` is non-empty
   - Print drift section with colored output
   - Yellow `~` for value change, green `+` for unset → desired
   - Format: `domain key: current → desired`
   - Update exit code: exit 2 if `p.HasChanges() || len(drifted) > 0`
-- [ ] Verify: `syncd plan` with no defaults in config → unchanged behavior
-- [ ] Verify: `syncd plan` with drifted defaults → shows drift, exit 2
-- [ ] Verify: `syncd plan` with matching defaults → no drift shown
+- [x] Verify: `syncd plan` with no defaults in config → unchanged behavior
+- [x] Verify: `syncd plan` with drifted defaults → shows drift, exit 2
+- [x] Verify: `syncd plan` with matching defaults → no drift shown
 
 ### 3.2 Integration tests: plan with defaults
 > REQ-075, REQ-076, REQ-077, REQ-079, REQ-080 | Design: Integration Tests
 
-- [ ] Add fake `defaults` script to integration test infrastructure
-  - Stores values in `$FAKE_DEFAULTS_STATE` directory as `domain/key` files
+- [x] Add fake `defaults` script to integration test infrastructure
+  - Stores values in `$FAKE_DEFAULTS_STATE` directory as `domain__key` files
   - Supports `read`, `read-type`, `write` subcommands
   - Returns exit 1 for missing domain/key
-- [ ] Add integration test: plan shows drift for changed value
-- [ ] Add integration test: plan shows "unset" for missing key
-- [ ] Add integration test: plan hides matching values
-- [ ] Add integration test: plan exit 2 with only defaults drift (no brew changes)
-- [ ] Add integration test: plan does not call `defaults write`
-- [ ] Verify: `make integration-test` passes
+- [x] Add integration test: plan shows drift for changed value
+- [x] Add integration test: plan shows "unset" for missing key
+- [x] Add integration test: plan hides matching values
+- [x] Add integration test: plan exit 2 with only defaults drift (no brew changes)
+- [x] Add integration test: plan does not call `defaults write`
+- [x] Verify: `make integration-test` passes
 
 **Estimate:** ~1 hour
 
