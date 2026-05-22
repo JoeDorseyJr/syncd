@@ -47,7 +47,7 @@ func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 					}
 				}
 			}()
-			r.RunMutate("brew", "update")
+			r.Run("brew", "update")
 			close(done)
 			fmt.Println(" done")
 
@@ -138,9 +138,8 @@ func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 			total := len(brewNames) + len(caskNames)
 
 			for i, name := range brewNames {
-				spinStop := startSpinner(fmt.Sprintf("  [%d/%d] %s", i+1, total, name))
+				fmt.Printf("  [%d/%d] %s...\n", i+1, total, name)
 				out, err := r.RunSilent("brew", "upgrade", name)
-				spinStop()
 				res := brew.Result{Action: "upgrade", Package: name, Err: err}
 				results = append(results, res)
 				if err != nil {
@@ -151,9 +150,8 @@ func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 				}
 			}
 			for i, name := range caskNames {
-				spinStop := startSpinner(fmt.Sprintf("  [%d/%d] %s", len(brewNames)+i+1, total, name))
+				fmt.Printf("  [%d/%d] %s...\n", len(brewNames)+i+1, total, name)
 				out, err := r.RunSilent("brew", "upgrade", "--cask", name)
-				spinStop()
 				res := brew.Result{Action: "upgrade-cask", Package: name, Err: err}
 				results = append(results, res)
 				if err != nil {
