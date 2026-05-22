@@ -1,9 +1,10 @@
 .PHONY: build test integration-test lint clean install uninstall
 
 PREFIX ?= /usr/local
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
 build:
-	CGO_ENABLED=0 go build -o bin/syncd ./cmd/syncd
+	CGO_ENABLED=0 go build -ldflags "-X main.version=$(VERSION)" -o bin/syncd ./cmd/syncd
 
 test:
 	go test ./...
