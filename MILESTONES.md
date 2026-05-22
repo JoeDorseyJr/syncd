@@ -22,14 +22,16 @@
 - [x] Clean shell hooks
 - [x] Reboot and verify system works
 
-## v0.2 — Polish & Usability
+## v0.2 — Polish & Usability ✅
 
-- [ ] `syncd init` — snapshot current system into config.yaml
-- [ ] Global install (`make install` → /usr/local/bin)
-- [ ] Colored output (green adds, red removes)
-- [ ] `--dry-run` alias for `plan`
-- [ ] `--verbose` flag for debugging
-- [ ] Dependency-aware removal (only remove explicitly-installed, not deps)
+- [x] Dependency-aware removal (only remove leaves, not deps)
+- [x] Colored output (green +, red -, yellow ~) with TTY detection
+- [x] `--no-color` flag
+- [x] `syncd upgrade` — upgrade all outdated packages
+- [x] Pin list in config (skip pinned packages during upgrade)
+- [x] `syncd init` — snapshot current system into config.yaml
+- [x] `--verbose` flag for debugging
+- [x] Global install (`make install` → /usr/local/bin)
 
 ## v0.3 — macOS Defaults
 
@@ -57,6 +59,5 @@
 - [ ] Battle-tested on daily driver
 - [ ] Error recovery (rollback on failure)
 - [ ] `syncd status` — detect drift without full plan output
-- [ ] `syncd update` — upgrade all declared packages
 - [ ] Logging (write apply results to ~/.config/syncd/logs/)
 - [ ] `syncd doctor` — diagnose common issues
