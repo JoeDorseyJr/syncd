@@ -95,9 +95,31 @@ func NewUpgradeCmd(cfgFile *string) *cobra.Command {
 			brewNames := pkgNames(brewPkgs)
 			caskNames := pkgNames(caskPkgs)
 
-			fmt.Println("\nUpgrading...")
-			results := brew.Upgrade(r, brewNames, caskNames)
-			fmt.Print(brew.FormatResults(results, Green, Red, Reset))
+			fmt.Printf("\nUpgrading (%d packages)...\n", len(brewNames)+len(caskNames))
+			var results []brew.Result
+			for i, name := range brewNames {
+				fmt.Printf("  [%d/%d] %s...", i+1, len(brewNames)+len(caskNames), name)
+				_, err := r.RunMutate("brew", "upgrade", name)
+				res := brew.Result{Action: "upgrade", Package: name, Err: err}
+				results = append(results, res)
+				if err != nil {
+					fmt.Printf(" %s✗%s\n", Red, Reset)
+				} else {
+					fmt.Printf(" %s✓%s\n", Green, Reset)
+				}
+			}
+			for i, name := range caskNames {
+				idx := len(brewNames) + i + 1
+				fmt.Printf("  [%d/%d] %s...", idx, len(brewNames)+len(caskNames), name)
+				_, err := r.RunMutate("brew", "upgrade", "--cask", name)
+				res := brew.Result{Action: "upgrade-cask", Package: name, Err: err}
+				results = append(results, res)
+				if err != nil {
+					fmt.Printf(" %s✗%s\n", Red, Reset)
+				} else {
+					fmt.Printf(" %s✓%s\n", Green, Reset)
+				}
+			}
 
 			if brew.HasErrors(results) {
 				os.Exit(1)
