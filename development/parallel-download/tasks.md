@@ -72,7 +72,7 @@
 ### 2.1 Download with atomic placement
 > REQ-137, REQ-139, REQ-140, REQ-141, REQ-154, REQ-155 | Design: Parallel Downloader
 
-- [ ] Create `internal/download/download.go`
+- [x] Create `internal/download/download.go`
   - `Result` struct: Package, Err, Bytes, Cached
   - `Options` struct: Concurrency, Display, Verbose
   - `PreDownload(packages []PackageURL, opts Options) []Result`
@@ -85,22 +85,22 @@
     5. On error: `os.Remove` the `.downloading` file
   - sync.WaitGroup for completion
   - Thread-safe result collection
-- [ ] Add unit tests in `internal/download/download_test.go`
+- [x] Add unit tests in `internal/download/download_test.go`
   - Test: successful download creates file at correct path
   - Test: already-cached file skipped (no HTTP request)
   - Test: failed download cleans up `.downloading` file
   - Test: HTTP redirect followed to final URL
   - Test: concurrency limit respected (use test server + timing)
-- [ ] Verify: `go test ./internal/download/...` passes
+- [x] Verify: `go test ./internal/download/...` passes
 
 ### 2.2 Non-fatal error handling
 > REQ-142, REQ-143 | Design: Design Decision 4
 
-- [ ] Ensure `PreDownload` never returns an error — all failures are per-package in `Result.Err`
-- [ ] Add unit tests
+- [x] Ensure `PreDownload` never returns an error — all failures are per-package in `Result.Err`
+- [x] Add unit tests
   - Test: all downloads fail → all Results have Err set, function returns normally
   - Test: mix of success and failure → successful files exist, failed files cleaned up
-- [ ] Verify: `go test ./internal/download/...` passes
+- [x] Verify: `go test ./internal/download/...` passes
 
 **Estimate:** ~2 hours
 
