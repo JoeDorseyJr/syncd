@@ -5,26 +5,26 @@
 ### 1.1 Phase detector
 > REQ-110 | Design: Phase Detector
 
-- [ ] Create `internal/progress/phase.go`
+- [x] Create `internal/progress/phase.go`
   - `DetectPhase(line string) string`
   - Match: `Downloading`/`downloading` → `"downloading"`
   - Match: `Pouring`/`pouring` → `"pouring"`
   - Match: `Installing`/`installing` → `"installing"`
   - Match: `Built`/`built from source` → `"built"`
   - Return `""` for non-matching lines
-- [ ] Add unit tests in `internal/progress/phase_test.go`
+- [x] Add unit tests in `internal/progress/phase_test.go`
   - Test: "Downloading https://..." → "downloading"
   - Test: "Pouring neovim--0.9.5" → "pouring"
   - Test: "Installing neovim" → "installing"
   - Test: "Built from source" → "built"
   - Test: random line → ""
   - Test: empty line → ""
-- [ ] Verify: `go test ./internal/progress/...` passes
+- [x] Verify: `go test ./internal/progress/...` passes
 
 ### 1.2 Progress runner with hang detection
 > REQ-114, REQ-115, REQ-116, REQ-117, REQ-118, REQ-119, REQ-120, REQ-125, REQ-126 | Design: Progress Runner
 
-- [ ] Create `internal/progress/runner.go`
+- [x] Create `internal/progress/runner.go`
   - `const HangTimeout = 60 * time.Second`
   - `type Result struct { Output []byte; Err error; Hung bool }`
   - `func RunWithProgress(name string, args []string, onPhase func(string)) Result`
@@ -33,14 +33,14 @@
   - Goroutine: scan lines, detect phase, call callback, reset timer, buffer output
   - Kill on timer expiry (60s no output)
   - Retry once on hang; if retry fails/hangs, return failure
-- [ ] Add unit tests in `internal/progress/runner_test.go`
+- [x] Add unit tests in `internal/progress/runner_test.go`
   - Test: successful command returns output and no error
   - Test: failing command returns error with captured output
   - Test: hung command killed after timeout (use short timeout for test)
   - Test: retry succeeds after first hang
   - Test: retry also hangs → failure reported
   - Test: callback called with detected phases
-- [ ] Verify: `go test ./internal/progress/...` passes
+- [x] Verify: `go test ./internal/progress/...` passes
 
 **Estimate:** ~2 hours
 
