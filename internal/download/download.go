@@ -21,7 +21,8 @@ type Result struct {
 type Options struct {
 	Concurrency int
 	CacheDir    string
-	OnComplete  func(Result) // called after each download completes (optional)
+	OnComplete  func(Result)                          // called after each download completes (optional)
+	OnProgress  func(name string, downloaded, total int64) // called during download with byte counts (optional)
 }
 
 // PreDownload downloads all packages in parallel to brew's cache.
@@ -58,7 +59,7 @@ func PreDownload(packages []PackageURL, opts Options) []Result {
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			bytes, err := downloadFile(client, p.URL, destPath)
+			bytes, err := downloadFile(client, p.URL, destPath, p.Name, opts.OnProgress)
 			results[idx].Bytes = bytes
 			results[idx].Err = err
 			if opts.OnComplete != nil {
@@ -71,7 +72,7 @@ func PreDownload(packages []PackageURL, opts Options) []Result {
 	return results
 }
 
-func downloadFile(client *http.Client, url, dest string) (int64, error) {
+func downloadFile(client *http.Client, url, dest, name string, onProgress func(string, int64, int64)) (int64, error) {
 	tmp := dest + ".downloading"
 
 	resp, err := client.Get(url)
@@ -89,7 +90,13 @@ func downloadFile(client *http.Client, url, dest string) (int64, error) {
 		return 0, err
 	}
 
-	n, err := io.Copy(f, resp.Body)
+	var n int64
+	if onProgress != nil {
+		pw := &ProgressWriter{Name: name, Total: resp.ContentLength, OnProgress: onProgress}
+		n, err = io.Copy(f, io.TeeReader(resp.Body, pw))
+	} else {
+		n, err = io.Copy(f, resp.Body)
+	}
 	f.Close()
 	if err != nil {
 		os.Remove(tmp)
