@@ -252,8 +252,9 @@ var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "�
 
 func startSpinner(prefix string) func() {
 	done := make(chan struct{})
+	fmt.Printf("\r%s %s", prefix, spinnerFrames[0])
 	go func() {
-		i := 0
+		i := 1
 		for {
 			select {
 			case <-done:
@@ -266,7 +267,8 @@ func startSpinner(prefix string) func() {
 	}()
 	return func() {
 		close(done)
-		fmt.Print("\r\033[K") // clear the spinner line
+		// Move to new line so Password: or result appears cleanly
+		fmt.Print("\r\033[K")
 	}
 }
 
