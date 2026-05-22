@@ -5,63 +5,63 @@
 ### 1.1 Platform detection
 > REQ-132 | Design: Platform Detection
 
-- [ ] Create `internal/download/platform.go`
+- [x] Create `internal/download/platform.go`
   - `Platform() string` — returns brew platform string (e.g., `arm64_sonoma`)
   - Use `runtime.GOARCH` for architecture
   - Use `sw_vers -productVersion` for macOS version → codename mapping
   - Map: 15.x→sequoia, 14.x→sonoma, 13.x→ventura, 12.x→monterey
-- [ ] Add unit tests in `internal/download/platform_test.go`
+- [x] Add unit tests in `internal/download/platform_test.go`
   - Test: arm64 + macOS 14.x → "arm64_sonoma"
   - Test: amd64 + macOS 14.x → "sonoma"
   - Test: unknown version → fallback to most recent known
-- [ ] Verify: `go test ./internal/download/...` passes
+- [x] Verify: `go test ./internal/download/...` passes
 
 ### 1.2 Cache filename generation
 > REQ-133, REQ-134, REQ-135, REQ-136 | Design: Cache Filename Generation
 
-- [ ] Create `internal/download/cache.go`
+- [x] Create `internal/download/cache.go`
   - `CacheFilename(url, name, version string, isCask bool) string`
   - SHA256 hash of URL string as lowercase hex prefix
   - Formula: `SHA256--name--version.bottle.tar.gz`
   - Cask: `SHA256--name--version.ext` (preserve extension from URL)
   - `CacheDir() string` — returns `~/Library/Caches/Homebrew/downloads/`
-- [ ] Add unit tests in `internal/download/cache_test.go`
+- [x] Add unit tests in `internal/download/cache_test.go`
   - Test: known URL produces expected SHA256 prefix
   - Test: formula filename format correct
   - Test: cask filename preserves `.dmg` extension
   - Test: cask filename preserves `.pkg` extension
   - Test: CacheDir returns correct path
-- [ ] Verify: `go test ./internal/download/...` passes
+- [x] Verify: `go test ./internal/download/...` passes
 
 ### 1.3 Formula URL extraction
 > REQ-128, REQ-129, REQ-130, REQ-153 | Design: URL Extraction
 
-- [ ] Create `internal/download/info.go`
+- [x] Create `internal/download/info.go`
   - `PackageURL` struct: Name, Version, URL, Filename, IsCask
   - `GetFormulaURLs(r runner.CommandRunner, names []string) ([]PackageURL, error)`
   - Run `brew info --json=v2 <names...>`, parse JSON
   - Extract bottle URL for current platform from `bottle.stable.files`
   - Fall back to `all` if platform-specific entry missing
   - Generate `Filename` using `CacheFilename`
-- [ ] Add unit tests in `internal/download/info_test.go`
+- [x] Add unit tests in `internal/download/info_test.go`
   - Test: extract bottle URL for arm64_sonoma
   - Test: fall back to `all` when platform missing
   - Test: multiple formulae parsed correctly
   - Test: formula with no bottle → skip (no error)
-- [ ] Verify: `go test ./internal/download/...` passes
+- [x] Verify: `go test ./internal/download/...` passes
 
 ### 1.4 Cask URL extraction
 > REQ-131 | Design: URL Extraction
 
-- [ ] Add `GetCaskURLs(r runner.CommandRunner, names []string) ([]PackageURL, error)` to `info.go`
+- [x] Add `GetCaskURLs(r runner.CommandRunner, names []string) ([]PackageURL, error)` to `info.go`
   - Run `brew info --json=v2 --cask <names...>`, parse JSON
   - Extract `url` and `version` fields from each cask
   - Generate `Filename` using `CacheFilename` (isCask=true)
-- [ ] Add unit tests
+- [x] Add unit tests
   - Test: extract cask URL with `.dmg` extension
   - Test: extract cask URL with `.pkg` extension
   - Test: multiple casks parsed correctly
-- [ ] Verify: `go test ./internal/download/...` passes
+- [x] Verify: `go test ./internal/download/...` passes
 
 **Estimate:** ~2 hours
 
