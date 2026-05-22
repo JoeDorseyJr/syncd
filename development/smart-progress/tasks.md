@@ -51,34 +51,34 @@
 ### 2.1 Error extractor
 > REQ-113, REQ-120 | Design: Error Extractor
 
-- [ ] Create `internal/progress/errors.go`
+- [x] Create `internal/progress/errors.go`
   - `func ExtractError(output []byte) string`
   - Scan for `Error:` line (case-insensitive)
   - Include error line + up to 2 following context lines
   - Fallback: last 3 lines if no `Error:` found
   - Max 5 lines total
-- [ ] Add unit tests in `internal/progress/errors_test.go`
+- [x] Add unit tests in `internal/progress/errors_test.go`
   - Test: output with "Error: ..." extracts that line + context
   - Test: output without "Error:" returns last 3 lines
   - Test: empty output returns empty string
   - Test: long output truncated to 5 lines
-- [ ] Verify: `go test ./internal/progress/...` passes
+- [x] Verify: `go test ./internal/progress/...` passes
 
 ### 2.2 Display with TTY detection
 > REQ-108, REQ-122, REQ-127 | Design: Display
 
-- [ ] Create `internal/progress/display.go`
+- [x] Create `internal/progress/display.go`
   - `type Display struct { IsTTY bool; last int }`
   - `func NewDisplay() *Display` — detect TTY via `os.Stdout.Fd()`
   - `func (d *Display) Status(format string, args ...interface{})` — `\r` overwrite in TTY, newline in non-TTY
   - `func (d *Display) Finish(format string, args ...interface{})` — always newline-terminated
   - Pad with spaces to clear previous longer line
-- [ ] Add unit tests in `internal/progress/display_test.go`
+- [x] Add unit tests in `internal/progress/display_test.go`
   - Test: TTY mode output contains `\r` prefix
   - Test: non-TTY mode output contains `\n` suffix
   - Test: Finish always ends with `\n`
   - Test: padding clears previous longer content
-- [ ] Verify: `go test ./internal/progress/...` passes
+- [x] Verify: `go test ./internal/progress/...` passes
 
 **Estimate:** ~1.5 hours
 
