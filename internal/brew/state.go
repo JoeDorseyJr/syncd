@@ -41,7 +41,7 @@ func GetOutdated(runner CommandRunner) ([]string, error) {
 
 // GetOutdatedCasks returns casks with available upgrades.
 func GetOutdatedCasks(runner CommandRunner) ([]string, error) {
-	return runAndParse(runner, "brew", "outdated", "--cask", "--quiet")
+	return runAndParse(runner, "brew", "outdated", "--cask", "--quiet", "--greedy")
 }
 
 func runAndParse(runner CommandRunner, name string, args ...string) ([]string, error) {
