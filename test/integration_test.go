@@ -115,14 +115,22 @@ case "$1" in
       fi
     fi
     ;;
-  autoremove|cleanup)
+  autoremove|cleanup|update)
     # No-op for fake
     ;;
   outdated)
     if [[ "$*" == *"--cask"* ]]; then
-      cat "$STATE_DIR/outdated_casks" 2>/dev/null || true
+      if [ -f "$STATE_DIR/outdated_casks_json" ]; then
+        cat "$STATE_DIR/outdated_casks_json"
+      else
+        echo '{"formulae":[],"casks":[]}'
+      fi
     else
-      cat "$STATE_DIR/outdated_brews" 2>/dev/null || true
+      if [ -f "$STATE_DIR/outdated_brews_json" ]; then
+        cat "$STATE_DIR/outdated_brews_json"
+      else
+        echo '{"formulae":[],"casks":[]}'
+      fi
     fi
     ;;
   upgrade)
@@ -175,10 +183,20 @@ func setupFakeStateWithLeaves(t *testing.T, taps, brews, leaves, casks []string)
 func setOutdated(t *testing.T, stateDir string, brews, casks []string) {
 	t.Helper()
 	if len(brews) > 0 {
-		os.WriteFile(filepath.Join(stateDir, "outdated_brews"), []byte(strings.Join(brews, "\n")+"\n"), 0644)
+		var entries []string
+		for _, b := range brews {
+			entries = append(entries, fmt.Sprintf(`{"name":"%s","installed_versions":["1.0.0"],"current_version":"2.0.0"}`, b))
+		}
+		json := fmt.Sprintf(`{"formulae":[%s],"casks":[]}`, strings.Join(entries, ","))
+		os.WriteFile(filepath.Join(stateDir, "outdated_brews_json"), []byte(json), 0644)
 	}
 	if len(casks) > 0 {
-		os.WriteFile(filepath.Join(stateDir, "outdated_casks"), []byte(strings.Join(casks, "\n")+"\n"), 0644)
+		var entries []string
+		for _, c := range casks {
+			entries = append(entries, fmt.Sprintf(`{"name":"%s","installed_versions":"1.0.0","current_version":"2.0.0"}`, c))
+		}
+		json := fmt.Sprintf(`{"formulae":[],"casks":[%s]}`, strings.Join(entries, ","))
+		os.WriteFile(filepath.Join(stateDir, "outdated_casks_json"), []byte(json), 0644)
 	}
 }
 

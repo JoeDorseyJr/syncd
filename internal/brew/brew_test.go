@@ -117,7 +117,7 @@ func TestGetLeaves_CommandFailure(t *testing.T) {
 func TestGetOutdated_ParsesOutput(t *testing.T) {
 	mock := &MockRunner{
 		Outputs: []MockOutput{
-			{Out: []byte("node\nwget\n")},
+			{Out: []byte(`{"formulae":[{"name":"node","installed_versions":["20.0.0"],"current_version":"22.0.0"},{"name":"wget","installed_versions":["1.21"],"current_version":"1.24"}],"casks":[]}`)},
 		},
 	}
 
@@ -125,15 +125,21 @@ func TestGetOutdated_ParsesOutput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(outdated) != 2 || outdated[0] != "node" || outdated[1] != "wget" {
-		t.Errorf("unexpected outdated: %v", outdated)
+	if len(outdated) != 2 {
+		t.Fatalf("expected 2 outdated, got %d", len(outdated))
+	}
+	if outdated[0].Name != "node" || outdated[0].Current != "20.0.0" || outdated[0].Latest != "22.0.0" {
+		t.Errorf("unexpected outdated[0]: %+v", outdated[0])
+	}
+	if outdated[1].Name != "wget" || outdated[1].Current != "1.21" || outdated[1].Latest != "1.24" {
+		t.Errorf("unexpected outdated[1]: %+v", outdated[1])
 	}
 }
 
 func TestGetOutdated_EmptyOutput(t *testing.T) {
 	mock := &MockRunner{
 		Outputs: []MockOutput{
-			{Out: []byte("")},
+			{Out: []byte(`{"formulae":[],"casks":[]}`)},
 		},
 	}
 
@@ -149,7 +155,7 @@ func TestGetOutdated_EmptyOutput(t *testing.T) {
 func TestGetOutdatedCasks_ParsesOutput(t *testing.T) {
 	mock := &MockRunner{
 		Outputs: []MockOutput{
-			{Out: []byte("firefox\n")},
+			{Out: []byte(`{"formulae":[],"casks":[{"name":"firefox","installed_versions":"120.0","current_version":"125.0"}]}`)},
 		},
 	}
 
@@ -157,7 +163,10 @@ func TestGetOutdatedCasks_ParsesOutput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(outdated) != 1 || outdated[0] != "firefox" {
-		t.Errorf("unexpected outdated casks: %v", outdated)
+	if len(outdated) != 1 {
+		t.Fatalf("expected 1 outdated cask, got %d", len(outdated))
+	}
+	if outdated[0].Name != "firefox" || outdated[0].Current != "120.0" || outdated[0].Latest != "125.0" {
+		t.Errorf("unexpected outdated cask: %+v", outdated[0])
 	}
 }
